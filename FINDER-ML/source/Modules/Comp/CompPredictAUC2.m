@@ -2,15 +2,21 @@ function array = CompPredictAUC2(Datas, parameters, methods)
     
 % Predict SVM
 
-switch parameters.multilevel.svmonly
-    case 1
-        SVMField = 'multilevel';
-    case 0
-        SVMField = 'multilevel';
-    case 2
-        SVMField = 'multilevel';
-end
+SVMField = 'multilevel';
+% switch parameters.multilevel.svmonly
+%     case 1
+%         SVMField = 'multilevel';
+%     case 0
+%         SVMField = 'multilevel';
+%     case 2
+%         SVMField = 'multilevel';
+% end
 
+
+% if strcmp(class(parameters.multilevel.SVMModel),...
+%         'classreg.learning.partition.ClassificationPartitionedModel')
+%     keyboard
+% end
 
 [class_Test_A,y_Test_A] = methods.all.SVMpredict(parameters.(SVMField).SVMModel, Datas.X_Test_A);
 [class_Test_B,y_Test_B] = methods.all.SVMpredict(parameters.(SVMField).SVMModel, Datas.X_Test_B);
@@ -29,11 +35,11 @@ labels = [ones(NA, 1); zeros(NB, 1)];
 scores = [scores_A(:) ; scores_B(:)];
 class_Test = [class_Test_A(:) ; class_Test_B(:)];
 
-fprintf('Prediction Results: \n');
-[C, order] = confusionmat(labels, class_Test, 'Order', [1 0]); 
-order = string(num2str(order));
-C = array2table(C, RowNames = ["True0" "True1"], VariableNames = ["Predicted0" "Predicted1"]);
-disp(C)
+%fprintf('Prediction Results: \n');
+% [C, order] = confusionmat(labels, class_Test, 'Order', [1 0]); 
+% order = string(num2str(order));
+% C = array2table(C, RowNames = ["True0" "True1"], VariableNames = ["Predicted0" "Predicted1"]);
+% disp(C)
 correct = sum(labels == class_Test); total = length(labels);
 %fprintf('Correct: %d of %d. \n', correct, total);
 

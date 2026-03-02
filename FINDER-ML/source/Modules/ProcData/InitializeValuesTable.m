@@ -26,10 +26,24 @@ VT.Properties.VariableNames = Names;
 
 %% Delete superfluous rows
 
-del1 = ismember(VT.Algorithm, [0,1]) & strcmp(VT.Eigenspace, 'largest'); % Benchmark and MLS don't need eigenspace parameter
-del2 = VT.Algorithm == 1 & VT.Balance == true; % Benchmark doesn't need unbalanced
-del3 = VT.Algorithm == 1 & VT.Kernel == true; %Benchmark doesn't need kernel parameter
-del = del1 | del2 | del3;
+del = false([height(VT), 1]);
+if any(contains(Names, 'Eigenspace')) & any(contains(Names, 'Algorithm'))
+del = del | ismember(VT.Algorithm, [0,1,4]) & strcmp(VT.Eigenspace, 'largest'); % Benchmark and MLS don't need eigenspace parameter
+end
+
+if any(contains(Names, 'Balance')) & any(contains(Names, 'Algorithm'))
+del = del | ismember(VT.Algorithm, [1 4]) & VT.Balance == true; % Benchmark doesn't need unbalanced
+end
+
+if any(contains(Names, 'Kernel')) && any(contains(Names, 'Algorithm'))
+del =  del | ismember(VT.Algorithm, [1 4]) & VT.Kernel == true; %Benchmark doesn't need kernel parameter
+end
+
+if any(contains(Names, 'Nesting')) && any(contains(Names, 'Algorithm'))
+del =  del | ismember(VT.Algorithm, [1 4]) & ismember(VT.Nesting, [0,2]); %Benchmark doesn't need nesting parameter
+end
+
+%del = del | del2 | del3;
 
 VT(del,:) = [];
 end

@@ -1,35 +1,35 @@
-Datasets = ["newAD" ];
-homeFolder = '18';
-resultsFolders = ["1", "18", "26"];
-CrossVal = ["Kfold"];
-CVTag = ["Leave 1 out"];
+Datasets = ["newAD", 
+            "Plasma_M12_ADCN", 
+            "Plasma_M12_ADLMCI",
+            "Plasma_M12_CNLMCI",
+            "SOMAscan7k_KNNimputed_AD_LMCI",
+            "SOMAscan7k_KNNimputed_CN_LMCI",
+            "SOMAscan7k_KNNimputed_AD_CN",
+            "GCM"...
+            ];
+
+myload = @(x) load(fullfile(x.folder, x.name));
+thisdir = pwd;
+methods = DefineMethods;
+resultsFolders = ["Manual_Hyperparameter_Selection"];
+CV = ["Kfold"];
 Balances = ["Balanced", "Unbalanced"];
 
 
-for DS = Datasets
+for DS = Datasets(:)'
+    fprintf('Processing %s \n', DS);
 for rF = resultsFolders
-for CV = CrossVal
-for CVT = CVTag
-for Balance = Balances
-    homePath = fullfile('..', 'results', homeFolder, CV, DS, CVT, "Unbalanced");
-    newPath = fullfile('..', 'results', rF, CV, DS, CVT, Balance);
-    if ~isfolder(newPath), mkdir(newPath), end
-    X = dir(homePath);
-    isBenchmark = cellfun( @(x) contains(x, 'SVMOnly') & contains(x, 'Normalized'), ...
-                            {X.name});
-    X = X(isBenchmark);
 
-    if isempty(X), continue, end
-    homeFile = fullfile(X.folder, X.name);
-    newFile = fullfile(newPath, X.name);
-    try
-     copyfile(homeFile, newFile);
-    catch
-        
-    end
+    homePath = fullfile('..', 'results', rF, CV, DS, 'Leave_1_out', '**', '*.mat');
+    
+
+    
 end 
 end
-end
-end
-end
 
+numFiles = 0;
+for i = 8:11
+    f = fullfile('..', 'results', sprintf('MethodOfEllipsoids_%d', i), '**', '*.mat');
+    numFiles = numFiles + length(dir(f));
+end
+disp(numFiles)

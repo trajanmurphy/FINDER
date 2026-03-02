@@ -1,0 +1,27 @@
+function H = ChebSep3Hessian(X, lambda, Datas, parameters, methods)
+
+
+
+M = parameters.transform.dimTransformedSpace;
+P = parameters.data.numofgene;
+K = reshape(X(1:end-1), [P,M]);
+r = X(end);
+
+%mu = mean(Datas.B.Covariance(1:M, :), 2); mu = norm(mu);
+
+%sub2 = methods.transform.Sub2(X, Datas, parameters, methods);
+
+
+
+Hk = r^-2 * Datas.A.Covariance + (1 - r)^-2 * Datas.B.Covariance;
+Hk = kron(speye(M), Hk);
+HKr = -(r^-3*Datas.A.Covariance + (1 - r)^-3 * Datas.B.Covariance) * K; Hkr = Hkr(:);
+Hr = 3*trace(K' * (r^-4 * Datas.A.Covariance + (mu - r)^-4 * Datas.B.Covariance) * K);
+
+H = [Hk , Hkr; Hkr' Hr];
+
+
+            
+
+
+end

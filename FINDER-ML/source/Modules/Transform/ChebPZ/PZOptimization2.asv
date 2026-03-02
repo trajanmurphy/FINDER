@@ -1,0 +1,73 @@
+function Datas = PZOptimization2(Datas, parameters, methods)
+
+if ~parameters.transform.ComputeTransform, return, end
+
+%% Initialize K, r
+
+if isempty(parameters.transform.dimTransformedSpace)
+    parameters.transform.dimTransformedSpace = parameters.data.numofgene;
+end
+
+
+
+% %% Compute feasible K and r
+% K = Datas.B.eigenvectors(:, end-M+1:end) * Datas.B.eigenvectors(:, end-M+1:end)';
+% %K = eye(M,P);
+% theta1 = mean( sqrt( sum( (K' * Datas.B.Training).^2,1) ));
+% theta2 = mean(sum( (K' * Datas.B.Training).^2,1) );
+% %r = theta1 - sqrt(  (theta2 - theta1^2) * (1 - 1/parameters.beta) ) ;
+% 
+% PZ1 = @(r) 1 / (1 - (theta1 - r).^2/(theta2 - theta1^2) );
+% PZ2 = @(r) 1 - (theta1 - r).^2 / theta2;
+% betabound = @(r) parameters.beta;
+% 
+% clf
+% fplot(PZ1, [0, theta1], 'LineWidth', 2), hold on, 
+% fplot(PZ2, [0, theta1], 'LineWidth', 2); 
+% fplot(betabound, [0, theta1], 'LineWidth', 2); legend({'PZ1', 'PZ2', 'beta'})
+% xlabel('r')
+% %plot([r PZ1(r)], 'MarkerSize',5);
+% 
+% % rlower = sqrt((1-parameters.beta)*theta2) - theta1 ;
+% % rupper = theta1;
+% % r = mean([rlower rupper]);
+% % r = 0;
+% % 
+% % X0 = [K(:) ; r];
+% 
+% 
+
+
+%% Define auxillary input functions
+optfun = @(X) methods.transform.objective(X, Datas, parameters, methods);
+gradfun = @(X) methods.transform.constraintInput(X, Datas, parameters, methods);
+
+if parameters.transform.useHessian
+    Hessfun = @(X, lambda) methods.transform.Hessian(X, lambda, Datas, parameters, methods);
+
+    parameters.transform.optimoptions = ...
+        optimoptions(parameters.transform.optimoptions{:},...
+        'HessianFcn', Hessfun);
+end
+
+%% Define upper and lower bounds on r
+
+
+X0 = methods.transform.InitialPoint(Datas, parameters, methods);
+lb = -inf(size(X0)); lb(end) = 0;
+[c,~,~,~] = PZConstraintsInput(X0, Datas, parameters, methods);
+                                     
+
+[X1, ~,~, output] = fmincon(optfun, X0, [], [], [], [], lb, [], gradfun, parameters.transform.optimoptions);
+
+
+K1 = reshape(X1(1:end-1), [parameters.data.numofgene, parameters.transform.dimTransformedSpace]);
+r = X1(end);
+alpha = trace(K1' * Datas.A.covariance * K1) / r^2;
+[c,~,~,~] = PZConstraintsInput(X1, Datas, parameters, methods);
+
+for Class = ["A", "B"], for Set = ["Training", "Testing"]
+        Datas.(Class).(Set) = K1' * Datas.(Class).(Set);
+end, end
+
+end

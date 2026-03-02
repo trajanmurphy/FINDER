@@ -9,11 +9,13 @@ delete(gcp('nocreate'))
 methods = DefineMethods;
 
 %% initialize parameters
+%methods.all.initialization = InitializeParameters3;
 [parameters] =  methods.all.initialization();
+%parameters = methods.data.GetCommonParameters(parameters, methods);
 
- tic;
+ t0 = tic;
  for k = 1:parameters.data.nk
-     t1 = toc;
+     t1 = toc(t0);
 
       % Read Data
       parameters.data.currentiter=k; 
@@ -69,19 +71,24 @@ methods = DefineMethods;
          case 2
          %ACA 
          results = methods.Multi2.CompMulti(Datas, parameters, methods, results);
+         case 3
+         results = methods.Multi3.CompMulti(Datas, parameters, methods, results);
+         case 4
+         results = methods.misc.Ablations(Datas, parameters, methods, results);
              
      end
 
      
      results = methods.all.ComputeAccuracyAndPrecision(Datas, parameters, methods, results);
 
-     t2 = toc;
+     t2 = toc(t0);
       
       results.run_time = duration(0,0,t2 - t1, 'Format', 'hh:mm:ss');
       results.creation_time = datetime;
      
 
      parameters = methods.all.filefunc(parameters, methods);
+     Datas.rawdata.AData = []; Datas.rawdata.BData = [];
      save(fullfile(parameters.datafolder,parameters.dataname), 'parameters', 'results', 'Datas');
 
  end

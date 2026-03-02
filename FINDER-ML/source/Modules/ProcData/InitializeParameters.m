@@ -1,14 +1,14 @@
 function [parameters] = InitializeParameters()
 
 %% Data parameters
-parameters.data.path = '/restricted/projectnb/sctad/Audrey/SOMAscan7k_KNNimputed_formatted_data/'; 
-parameters.data.label = 'SOMAscan7k_KNNimputed_AD_CN'; 
+parameters.data.path = '';
+parameters.data.label = 'GCM';
 parameters.data.name = [parameters.data.label, '.txt'];
 
-parameters.data.validationType = 'Kfold'; % One of 'Synthetic', 'Kfold', or 'Cross'
+parameters.data.validationType = 'Kfold';  %One of 'Synthetic', 'Kfold', or 'Cross'
 parameters.data.numofgene = []; % Set to empty array [] to initialize as latent data dimension
 parameters.data.normalize = 1; % if 1 then Data standarized
-parameters.data.randomize = false; % true = randomly permute data upon loading
+parameters.data.randomize = true; % true = randomly permute data upon loading
 
 %% Cross Validation Parameters
 parameters.cross.NTestA = 1;
@@ -20,32 +20,46 @@ parameters.Kfold = 1; %If parameters.data.generealization is set to 1,
 
 
 %% Semi-synthetic data realization parameters
-parameters.synthetic.functionTransform = 15; %if 'id';
-parameters.synthetic.NKLTerms = 89; % KL Truncation for generating Semisynthetic Data
+parameters.synthetic.functionTransform = 'id'; %if 'id';
+parameters.synthetic.NKLTerms = 145; % KL Truncation for generating Semisynthetic Data
 parameters.synthetic.Ars = [150, 450, 1500, 10000];
 parameters.synthetic.Brs = [100, 100, 100, 100];
 parameters.synthetic.NTest = 10000;
 
 
 %% MultiLevel parameters
-parameters.snapshots.k1 = 8;% KL Truncation for Class A
-parameters.multilevel.svmonly = 1; % 0 = MLS, 1 = Benchmark, 2 = ACA
+parameters.snapshots.k1 = 16;% KL Truncation for Class A
+parameters.multilevel.svmonly = 2; % 0 = MLS, 1 = Benchmark, 2 = ACA
 parameters.multilevel.splitTraining = false; % true = Balanced, false = Unbalanced
-parameters.multilevel.eigentag = 'largest'; %'largest' = ACA-L, 'smallest' = ACA-S
-parameters.multilevel.Mres = 'MLS';
+parameters.multilevel.eigentag = 'smallest'; %'largest' = ACA-L, 'smallest' = ACA-S
+parameters.multilevel.Mres_manual = [];%200:200:2000;
+parameters.multilevel.Mres_auto = [];
+%parameters.multilevel.Mres = unique([parameters.multilevel.Mres_manual(:),...
+ %                             parameters.multilevel.Mres_auto(:)]);
 
 parameters.multilevel.l = 'max'; % number of multilevel subspaces for MLS method (set to max if unsure)
 parameters.multilevel.nested = 1; % if 0 then non nested, if 1 nesting is 0-l, if 2 nesting is l-max(l), 
 
-parameters.multilevel.chooseTrunc = true; %manual vs algorithmic MA and Mres selection (still in beta). 
-parameters.multilevel.concentration = 1; %algorithmic parameter selection parameter
+parameters.multilevel.chooseTrunc = false; %manual vs algorithmic MA and Mres selection (still in beta). 
+parameters.multilevel.concentration = 0.95; %algorithmic parameter selection parameter
 
 %% Baseline performance parameters
-parameters.misc.MachineList = ["SVM_Linear", "SVM_Radial", "LogitBoost", "RUSBoost", "Bag"]; %Benchmark learners
+parameters.misc.MachineList = ["SVM_Linear-PCA", "SVM_Radial-PCA", "SVM_Linear", "SVM_Radial", "LogitBoost", "RUSBoost", "Bag"]; %Benchmark learners
+parameters.misc.PCA = true;
+
+%% Ablation List
+parameters.Ablation.List = ["2nd degree polynomial kernel",... Use polynomial kernel of order 2
+                            "Kernel scaling",... Set Kernel Scaling to 1
+                            "L1 quadratic programming solver",...Use L1 Quadrating Programming Solver as the optimization routine
+                            ..."10-fold cross validation",...
+                            ..."5-fold cross validation",...set Number of folds to 5
+                            "Box constraint = 10",...
+                            "Standardized",... set to true
+                            "Delta gradient tolerance = $10^{-2}$"]; ... Stop convergence early
 
 
 %% Assorted parameters
-parameters.parallel.on = false;% true = use parallel toolbox
+parameters.parallel.on = false; %true = use parallel toolbox
 parameters.svm.kernal = true; % true = use RBF for SVM separating surface (FINDER only)
 parameters.gpuarray.on = false; % true = convert all data arrays to GPU arrays. 
 parameters.snapshots.controlRand = false;

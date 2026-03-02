@@ -11,7 +11,7 @@ elseif strcmp(parameters.multilevel.l, 'max')
 end
 
 if isempty(parameters.multilevel.Mres_auto)
-    parameters.multilevel.Mres = paraemters.miultilevel.Mres_manual;
+    parameters.multilevel.Mres = parameters.multilevel.Mres_manual;
     return
 elseif strcmp(parameters.multilevel.Mres_auto, 'MLS')
     if parameters.multilevel.chooseTrunc

@@ -11,6 +11,13 @@ for iLevel = 1:nLevels %iLevel = N
     %predicted = squeeze(results.array(:,:,N == iLevel,:,2));
     predicted = squeeze(results.array(:,:,iLevel,:,3));
     predicted = predicted(~isnan(predicted));
+    
+    
+    if isempty(actual) || isempty(predicted)
+        continue
+    end
+
+
 
    TP = sum(actual == 1 & predicted == 1);
    TN = sum(actual == 0 & predicted == 0);

@@ -1,0 +1,33 @@
+function sub = AMHOsub1(X, Datas, parameters, methods)
+
+NB = size(Datas.B.Training, 2);
+%% Variables
+AlphaUB = X.r^-2 * trace(X.K' * Datas.A.covariance * X.K);
+
+y = sum( (X.K' * Datas.B.Training).^2, 1);
+
+theta = mean( y.^[0.5;1] ,2);
+
+gamma = (theta(2) - theta(1))^2 / (theta(1) - X.r)^2 ;
+
+BetaUB = 1 - 1/(1 + gamma);
+
+dBetaUB_dgamma = (1 + gamma)^(-2); 
+d2BetaUB_dgamma = -2 * (1 + gamma)^(-3); 
+
+dgamma_dtheta = [-2*(theta(2) - theta(1)*X.r) * (theta(1) - X.r)^(-3);
+                (theta(1) - X.r)^(-2)];
+d2gamma_dtheta(2) = (theta(1) - X.r)^(-4)*...
+                  [2*X.r*(theta(1) - X.r) + 6*(theta(2) - theta(1)*X.r) , ...
+                  -2 * (theta(1) - X.r);...
+                  -2 * (theta(1) - X.r),...
+                  0];
+
+dtheta_dy = 1/(NB -1) *[0.5 * y(1,:)'.^(-0.5) ;
+                        ones(1, length(y))];
+
+d2theta_dy2 = 1/(NB -1) *[0.75 * y(1,:)'.^(-1.5) ;
+                        zeros(1, NB)];
+
+
+end

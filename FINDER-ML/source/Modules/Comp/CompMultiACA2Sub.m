@@ -15,6 +15,7 @@ for j = parameters.data.NBvals
     %% Apply both layers of filtering to data
     Datas = methods.all.prepdata(Datas, parameters);% Split data into two groups: training and testing             
     Datas = methods.transform.tree(Datas, parameters, methods); % Compute Transformation K using training data, apply to training and validation data 
+    
     parameters = methods.Multi2.ChooseTruncations(Datas, parameters, methods);
     Datas = methods.Multi2.ConstructResidualSubspace(Datas, parameters, methods); %Construct Filter
 

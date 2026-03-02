@@ -11,7 +11,7 @@ methods = DefineMethods;
 %% initialize parameters
 %methods.all.initialization = InitializeParameters3;
 [parameters] =  methods.all.initialization();
-%parameters = methods.data.GetCommonParameters(parameters, methods);
+parameters = methods.data.GetCommonParameters(parameters, methods);
 
  t0 = tic;
  for k = 1:parameters.data.nk
@@ -67,7 +67,7 @@ methods = DefineMethods;
          case 0
          %MLS
          results = methods.Multi.CompMulti(methods, Datas, parameters, results);
-         parameters = ResidDimensionForMOLS(Datas, parameters, methods);
+         %parameters = ResidDimensionForMOLS(Datas, parameters, methods);
          case 2
          %ACA 
          results = methods.Multi2.CompMulti(Datas, parameters, methods, results);

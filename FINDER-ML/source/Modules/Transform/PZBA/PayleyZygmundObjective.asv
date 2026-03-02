@@ -1,0 +1,18 @@
+function [f, gradf] = PayleyZygmundObjective(X, in, Datas, methods)
+
+    %in is the output returned from PayleyZygmundOptimizationSub1
+
+    out = methods.transform.optSub2(X, in, Datas);
+
+    %% output value objective function f
+    f = 1 - (out.theta_1 - out.r)^2 / out.theta_2 ;
+
+    %% output gradient of f wrt X 
+    gradf = zeros(in.gradlen, 1);
+
+    gradf(in.iSigma) = diag( out.Sigma(:) .* out.V' * out.Z_2 * out.V );
+    gradf(in.iV) = reshape( out.Z_2 * (out.V .* out.Sigma(:)'.^2) ...
+        ,[in.nV, 1]);
+    gradf(in.iR) = -2*(out.theta_1 - out.r) / out.theta_2 ; 
+
+end

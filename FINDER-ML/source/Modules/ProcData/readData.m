@@ -2,9 +2,13 @@ function [Datas, parameters] = readData(parameters, methods)
 
 
 
-T = readtable([parameters.data.path, parameters.data.name]);
+T = readtable(strcat(parameters.data.path, parameters.data.name));
 
 
+if parameters.data.randomize
+    rng(1000);
+    T = T(randperm(height(T)), randperm(width(T)));
+end
 
 %My Additions============
 %========================
@@ -21,12 +25,14 @@ parameters.data.typeB = unique_labels{itypeB};
 %========================
 %========================
 
+
+
 AData = table2array(T(:,startsWith(T.Properties.VariableNames, parameters.data.typeA)));
 BData = table2array(T(:,startsWith(T.Properties.VariableNames, parameters.data.typeB)));
 
-if isempty(parameters.data.numofgene)
+%if isempty(parameters.data.numofgene)
     parameters.data.numofgene = height(T);
-end
+%end
 
 
 
@@ -51,7 +57,7 @@ switch parameters.data.validationType
 
     case 'Kfold'
 
-        if isempty(parameters.Kfold), parameters.Kfold = ceil(NB / 5); end  
+        if isempty(parameters.Kfold), parameters.Kfold = ceil(NB / 10); end  
         parameters.data.NAvals = 1:floor(NA / parameters.Kfold);
         parameters.data.NBvals = 1:floor(NB/ parameters.Kfold);
 
@@ -62,4 +68,17 @@ switch parameters.data.validationType
         if isempty(parameters.cross.NTestA), parameters.cross.NTestA = floor(NA*0.2); end
 
 end
+
+
+%% Choose only a subset of the pairs to hold out if the Kfold is sufficiently low
+if strcmp(parameters.data.validationType, 'Kfold')
+if parameters.Kfold < ceil(NB / 10)
+    NAvals = ceil(NA / 10);
+    NBvals = ceil(NB / 10);
+    %NAvals = ceil(NA / NB*10);
+    parameters.data.NAvals = 1:NAvals;
+    parameters.data.NBvals = 1:NBvals;
+end
+end
+
 end

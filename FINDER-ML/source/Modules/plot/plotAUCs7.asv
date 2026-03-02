@@ -1,0 +1,512 @@
+function plotAUCs7
+close all
+
+rF = 'results2';
+lFS = 12;
+TablePath = fullfile('..',rF, 'Manual_Hyperparameter_Selection','Kfold', 'Graphs');
+
+nesting = "Inner-Nesting";
+DSidx = [1:5, 8 9 11]; 
+Balances = ["Balanced", "Unbalanced"];
+Accs = ["AUC", "accuracy"];
+Algos = ["MLS", "ACA-S", "ACA-L", "Benchmark"];
+
+DataSets = ["GCM", "newAD", ...
+            arrayfun(@(x) sprintf("Plasma_M12_%s",x),... 
+            ["ADCN", "ADLMCI", "CNLMCI"]),...
+            arrayfun(@(x) sprintf("SOMAscan7k_KNNimputed_%s", x),...
+            ["EMCI_LMCI", "CN_EMCI", "CN_LMCI", "AD_LMCI", "AD_EMCI", "AD_CN"]) ];
+
+DataAliases = ["GCM", "newAD", ...
+                arrayfun(@(x) sprintf("ADNI (%s)", x),...
+               ["AD vs. CN", "AD vs. LMCI", "CN vs. LMCI"]),...
+               arrayfun(@(x) sprintf("CSF (%s)",x),...
+               ["EMCI vs. LMCI", "CN vs. EMCI", "CN vs. LMCI", "AD vs. LMCI", "AD vs. EMCI", "AD vs. CN"])...
+               ];
+
+
+DataSets = DataSets(DSidx); DataAliases = DataAliases(DSidx);
+T = CreateBlankTable(DataAliases);
+
+
+for iDS = 1:length(DataSets)
+    
+    DS = DataSets(iDS); DA = DataAliases(iDS);
+    fprintf('Processing %s \n', DA);
+
+for iMOE = 1:height(T.AUC)
+    MOE = T.AUC.Properties.RowNames{iMOE};
+    fprintf('\t %s \n', MOE);
+    T = FillTable(T, MOE, DS, DA, rF, nesting);
+end
+end
+
+
+   
+
+fprintf('Saving Table \n\n');
+save(fullfile(TablePath, 'Algorithmic_Hyperparameter_Selection.mat'), 'T');
+
+
+fprintf('Creating Plots: \n');
+for DA = DataAliases
+    
+    [f, ax, l] = CreateBlankFigure;
+    PlotAxesData(ax, T, DA);
+    f = FixGraph(f, DA);
+    fprintf('Saving %s plots \n', DA);
+    plotName = sprintf('AHS_%s.pdf',DA);
+    exportgraphics(f,fullfile(TablePath, plotName));
+    close(f);
+
+end
+    
+end
+
+
+
+
+%==========================================================================
+function Xout = GetAlgo(parameters)
+%Obtain the Algorithm, eigentag, kernel, and Balanced condition of a
+%parameters struct
+
+if parameters.multilevel.svmonly == 0
+    Xout.Algo = "MLS";
+elseif parameters.multilevel.svmonly == 2
+    Xout.Algo = "ACA";
+    if strcmp(parameters.multilevel.eigentag, 'smallest')
+        Xout.Algo = Xout.Algo + "-S'";
+    elseif strcmp(parameters.multilevel.eigentag, 'largest')
+        Xout.Algo = Xout.Algo + "-L'";
+    end
+end 
+
+Kernels = ["L", "R"];
+Xout.Kernel = Kernels(parameters.svm.kernal + 1);
+
+Balances = ["U", "B"];
+Xout.Balanced = Balances(parameters.multilevel.splitTraining + 1);
+
+end
+%==========================================================================
+function Xout = GetBenchmarks(DS, rF, nesting)
+%Obtain the data corresponding to the best FINDER method and best Benchmark
+%method. Returns a struct X with the following fields:
+    
+    MOE = 'Manual_Hyperparameter_Selection';
+    CrossVal = 'Kfold';
+
+    folderpath = fullfile('..', rF, MOE, CrossVal, DS, 'Leave_1_out','**', '*.mat');
+    X = dir(folderpath); 
+    X(matches({X.name}, [".", ".."])) = []; 
+    X(~contains({X.name}, (".mat" | nesting))) = [];
+    
+    %Get Benchmark Data
+    XBench = X(contains({X.name}, 'Benchmark'));
+    load(fullfile(XBench.folder, XBench.name));
+
+    for Acc = ["AUC", "accuracy"]
+    [Xout.(Acc).Bench, iBench] = max(results.(Acc));
+    Xout.(Acc).Classifier = parameters.misc.MachineList(iBench);
+    end
+
+    %Get FINDER Data
+    XFinder = X(~contains({X.name}, 'Benchmark'));
+    XFinder = arrayfun(@(x) load(fullfile(x.folder, x.name)), XFinder);
+
+    for Acc = ["AUC", "accuracy"]
+
+        maxAcc = arrayfun(@(x) max(x.results.(Acc)), XFinder);
+        [~, imax] = max(maxAcc);
+        XFinder2 = XFinder(imax);
+        [Xout.(Acc).Metric, iMres] = max(XFinder2.results.(Acc));
+        Xout.(Acc).Mres = XFinder2.parameters.multilevel.Mres(iMres);
+        Xout2 = GetAlgo(XFinder2.parameters);
+        Xout.(Acc).Finder = Xout2.Algo;
+        Xout.(Acc).Kernel = Xout2.Kernel;
+        Xout.(Acc).Balanced = Xout2.Balanced;
+
+    end
+
+
+end
+%==========================================================================
+function T1 = CreateBlankTable(DataAliases)
+RowNames = arrayfun(@(x) sprintf("MethodOfEllipsoids_%d", x), 8:11);
+
+T0 = cell(length(RowNames),length(DataAliases));
+T0 = cell2table(T0);
+T0.Properties.RowNames = RowNames;
+T0.Properties.VariableNames = DataAliases;
+T1 = struct('AUC', T0, 'accuracy', T0);
+
+end
+%==========================================================================
+function T = FillTable(T, MOE, DS, DA, rF, nesting)
+
+Algos = ["MLS", "ACA-S", "ACA-L"];
+Accs = ["AUC", "accuracy"];
+Balances = ["U", "B"];
+Kernels = ["L", "R"];
+
+Bench = GetBenchmarks(DS, rF, nesting);
+
+folderpath = fullfile('..', rF, MOE, 'Kfold', DS, 'Leave_1_out','**', '*.mat');
+X = dir(folderpath); 
+X(matches({X.name}, [".", ".."])) = []; 
+X(~contains({X.name}, ('.mat' | nesting))) = [];
+
+for Acc = Accs
+    barData = nan(length(Algos), 1);
+    nameData = repmat("", size(barData));
+for Algo = Algos
+
+    X2 = X(contains({X.name}, Algo));
+    X3 = arrayfun(@(x) load(fullfile(x.folder, x.name)), X2);
+    X4 = arrayfun(@(x) x.results.(Acc), X3);
+    [X5, iX5] = max(X4);
+    X6 = X3(iX5);
+    
+    barData(Algos == Algo) = X5; 
+
+    Balance = Balances(X6.parameters.multilevel.splitTraining + 1);
+    Kernel = Kernels(X6.parameters.svm.kernal + 1);
+
+    nameData(Algos == Algo) = Algo + " " + Balance + Kernel;
+
+end
+    Tentry = {barData ; nameData ; Bench.(Acc)};
+    T.(Acc)(MOE,:).(DA){1} = Tentry;
+end
+
+end
+
+%==========================================================================
+function [f, ax, l] = CreateBlankFigure()
+
+%nMOEs = length(MOEs);
+f = figure('Units', 'normalized', 'Position', [0.05, 0.2, 0.85 0.4]);
+
+for i = 1:2
+    ax(i) = subplot(1, 2, i);
+    l(i) = legend('Location', 'eastoutside');
+    %ap(i,:) = get(ax, 'Position');
+end
+%plot(ax(end), rand([10,4]));
+axWidth = ax(1).Position(3);
+axWidthMargin = ax(1).Position(1) + axWidth;
+axLeft =  0.065;
+
+
+
+for i = 1:length(ax)
+    ax(i).Position(3) = axWidth;
+    ax(i).Position(1) = ax(i).Position(1) - 0.05; %i*axLeft + (i-1)*axWidth;
+    ax(i).Position(4) = 0.8 * ax(i).Position(4);
+    ax(i).Position(2) = ax(i).Position(2) + 0.25*f.Position(2);
+end
+
+%l.Position(3) = 2*l.Position(3);
+%cla(ax(2));
+
+end
+
+%==========================================================================
+function PlotAxesData(ax, T, DA)
+
+%when using bar(X), each row of X corresponds to a group in the bar chart
+
+Accs = ["AUC", "accuracy"];
+barNames = ["I", "II", "III", "IV"];
+
+for Acc = Accs
+    barData = nan(height(T.(Acc)), 3);
+    for iMOE = 1:height(T.(Acc))
+    barData(iMOE, :) = T.(Acc)(iMOE,:).(DA){1}{1}'; 
+    end
+    axes(ax(Accs == Acc)); hold on
+
+    %x1 = get(gca, 'XLim');
+    bar(barNames, barData)
+    for x = ["Bench", "Metric"]
+    y1 = T.(Acc)(1,:).(DA){1}{3}.(x) ;
+    yline(y1);
+    end
+
+    l = CreateLegend(T.(Acc), DA);
+     %, 'FaceColor', 'flat');
+    
+end
+
+end
+%==========================================================================
+function l = CreateLegend(T, DA)
+
+lFS = 12;
+MOE_Finder = T(1,:).(DA){1}{2};
+Benchmark = BenchmarkDictionary(T(1,:).(DA){1}{3}.Classifier);
+BenchFinder = T(1,:).(DA){1}{3}.Finder + " " + ...
+    T(1,:).(DA){1}{3}.Balanced + ...
+    T(1,:).(DA){1}{3}.Kernel;
+
+legstr = [MOE_Finder' , Benchmark, BenchFinder];
+l = legend(legstr, 'FontSize', lFS, 'Interpreter', 'latex', 'Location', 'eastoutside');
+end
+%==========================================================================
+
+function Bout = BenchmarkDictionary(Bin)
+
+
+Machines = ["SVM_Linear-PCA", "SVM_Radial-PCA",...
+    "SVM_Linear", "SVM_Radial",...
+    "LogitBoost", "RUSBoost", "Bag"];
+
+if ~ismember(Bin, Machines), keyboard, end
+Aliases = ["L-PCA", "R-PCA",...
+            "SVM-L", "SVM-R",...
+            "Log", "RUS", "Bag"];
+Bout = Aliases(Machines == Bin);
+end
+
+%==========================================================================
+function f = FixGraph(f, DA)
+xFS = 13;
+yFS = 15;
+tFS = 17;
+YTicks = 0.6:0.05:1; YLim = [min(YTicks) max(YTicks)]; 
+YTickLabels = num2cell(YTicks); YTickLabels(2:2:end) = {''};
+axNames = {'YLim', 'YGrid', 'YTickMode', 'ytick','YTickLabels'};
+axValues = {YLim, 'on', 'manual', YTicks, YTickLabels};
+
+%LineArgs = {'LineWidth', 2, 'Marker', 's', 'MarkerSize', 10, 'MarkerFaceColor', 'auto'};
+%AxlabelArgs = {'Interpreter', 'latex', 'FontSize', 13};
+
+BarColors = [0.12, 0.21, 1; %MLS - blue
+            1, 0.04, 0.12; %ACA-S - red
+            0.25, 0.25, 0.25]; %ACA-L - black
+
+            
+LineColors = [0.85, 0.67, 0.2; %Benchmark - gold;
+            0.6*[0.5, 0.1, 0.8]]; %FINDER - violet
+
+Algos = ["MLS", "ACA-S", "ACA-L"];
+Algop = ("MLS" | "ACA" );
+
+ax = findall(f, 'Type', 'Axes');
+lefts = arrayfun(@(a) a.Position(1), ax); 
+islefts = lefts == min(lefts);
+
+for iax = 1:length(ax)
+    axes(ax(iax));
+    Bars = findall(ax(iax), 'Type', 'Bar');
+    for  Algo = Algos
+        iBar = contains({Bars.DisplayName}, Algo);
+        Bar = Bars(iBar);
+        BarColor = BarColors(Algos == Algo,:);
+        Bar.FaceColor = BarColor;
+    end
+
+    CLs = findall(ax(iax), 'Type', 'ConstantLine');
+    for iCL = 1:length(CLs)
+        CL = CLs(iCL);
+        isFinder = contains(CL.DisplayName, Algop);
+        LineColor = LineColors(isFinder + 1, :);
+        CL.LineWidth = 2.5;
+        CL.Color = LineColor;
+        CL.LineStyle = '--';
+    end
+    
+    switch islefts(iax)
+        case true
+        ylabel("AUC", 'FontSize', yFS, 'Interpreter', 'latex');
+        case false
+        ylabel("Accuracy", 'FontSize', yFS, 'Interpreter', 'latex');
+    end
+
+    title(DA, 'FontSize', tFS, 'Interpreter', 'latex');
+    cellfun(@(x,y) set(ax(iax), x, y), axNames, axValues);
+    ax(iax).XAxis.TickLabelInterpreter = 'latex';
+    ax(iax).XAxis.FontSize = xFS;
+    ax(iax).YAxis.FontSize = yFS-4;
+    ax(iax).YLabel.FontSize = yFS;
+
+end
+
+end
+
+
+% axstr = {'Manual', 'Auto-I', 'Auto_II'};
+% 
+% CrossVal = 'Kfold';
+% %% Set Plot Parameters
+% YTicks = 0.6:0.05:1; YLim = [min(YTicks) max(YTicks)]; 
+% YTickLabels = num2cell(YTicks); YTickLabels(2:2:end) = {''};
+% axNames = {'YLim', 'YGrid', 'fontsize', 'YTickMode', 'ytick','YTickLabels'};
+% axValues = {YLim, 'on', 11, 'manual', YTicks, YTickLabels};
+% LineArgs = {'LineWidth', 2, 'Marker', 's', 'MarkerSize', 10, 'MarkerFaceColor', 'auto'};
+% AxlabelArgs = {'Interpreter', 'latex', 'FontSize', 13};
+% 
+% Balances = ["Balanced", "Unbalanced"];
+% Accs = ["AUC", "accuracy"];
+% capitalize = @(str) upper(extractBefore(str,2)) + extractAfter(str,1);
+% 
+% LineColors = [0.12, 0.21, 1;
+%              1, 0.04, 0.12;
+%              0.25, 0.25, 0.25];
+% 
+% LineColors = 0.75*LineColors + 0.25*ones(3);
+% 
+% legstr = {'Benchmark', 'MLS', 'ACA'};
+% 
+% %% Iterate over Data Sets, Balances, and Accuracy measures
+% 
+% 
+% for iDS = 1:length(DataSets)
+%     DS = DataSets(iDS);
+% 
+%     f = figure('units','normalized','outerposition',[0 0 0.8 0.9]);
+% 
+% 
+% for iacc = 1:length(Accs)
+%     Acc = Accs(iacc);
+%     iplot = 0;
+% 
+% for iBalance = 1:length(Balances)
+% 
+%     Balance = Balances(iBalance);
+%     barData = nan(length(resultFolder), 3);
+%     %axstr = cell(length(resultFolder),3);
+% 
+% for iMethod = 1:length(resultFolder)
+% 
+%     rF = resultFolder(iMethod);
+% 
+% 
+% 
+% 
+% 
+%         folderpath = fullfile('..','results', rF, CrossVal, DS, 'Leave 1 out', Balance);
+%         X = dir(folderpath);
+%         X(1:2) = [];
+%         X = {X.name};
+%         iX = cellfun(@(x) contains(x, '.mat'), X) & cellfun(@(x) ~contains(x, 'Unnormalized'), X); 
+%         X = X(iX);
+% 
+%         X = cellfun(@(x) load(fullfile(folderpath, x)) , X);
+% 
+%         svmonly = arrayfun(@(x) x.parameters.multilevel.svmonly, X);
+%         iplot = sub2ind([2 2], iBalance, iacc);
+% 
+%         ax = subplot(2,2,iplot); hold on, 
+%         ax.Position(2) = ax.Position(2) - 0.05; 
+%         ax.Position(3) = 0.375;
+%         ax.Position(4) = 0.35;
+%         title({DS, Balance}, AxlabelArgs{:});
+%         cellfun(@(x,y) set(ax,x,y), axNames, axValues);
+%         ylabel(capitalize(Acc), AxlabelArgs{:});   
+% 
+% 
+% 
+% for isvm = [2,0,1]
+%     jsvm = svmonly == isvm;
+%     x = X(jsvm); 
+% 
+%     BestAccList = arrayfun(@(y) max(y.results.(Acc)), x);
+%     [~,iBestAcc] = max(BestAccList);
+%     Bestx = x(iBestAcc);
+% 
+% switch isvm
+%     case 1 
+% 
+%         %% Benchmark Machines 
+% 
+%         iBench = strcmp(legstr, 'Benchmark');
+%         [barData(iMethod, iBench), iBest] = max(Bestx.results.(Acc));
+%         legstr{iBench} = Bestx.parameters.misc.MachineList(iBest);
+%         %axstr{iMethod, iBench} = char(Bestx.parameters.misc.MachineList(iBest));
+% 
+%     case 0 
+% 
+%         %% Multilevel Orthogonal Subspace Filter
+% 
+%         iMLS = strcmp(legstr, 'MLS');
+%         switch Bestx.parameters.svm.kernal, case true, s = 'w/'; case false, s = 'w/o'; end
+%         barData(iMethod, iMLS) = max(Bestx.results.(Acc)); 
+%         %axstr{iMethod, iMLS} = sprintf('%s RBF', s);
+% 
+% 
+%     case 2
+% 
+%         %% Anomalous Class Adapted Filter
+%         iACA = strcmp(legstr, 'ACA');
+%         switch Bestx.parameters.svm.kernal, case true, s = 'w/'; case false, s = 'w/o'; end
+%         eigentag = upper(Bestx.parameters.multilevel.eigentag(1));
+%         %axstr{iMethod, iACA} = sprintf('%s %s RBF', eigentag, s);
+%         barData(iMethod, iACA) = max(Bestx.results.(Acc));
+% end
+% 
+% 
+% end
+% 
+%     %% Place and size legend
+%     % ax = subplot(1,2,iplot);
+%     % axpos = get(ax,'Position');
+%     % axwidth = axpos(3);
+%     % axheight = axpos(4
+%     % axright = axpos(1) + axpos(3);
+%     % axbottom = axpos(2);
+%     % 
+%     % legwidth = 0.5*axwidth;
+%     % legheight = 0.22*axheight ;
+%     % 
+%     % legleft = axright - 0.01 - legwidth;
+%     % legbottom = axbottom + 0.025;
+%     % 
+%     % legpos = [legleft, legbottom, legwidth, legheight];
+%     % 
+% 
+% 
+%     % switch Acc
+%     %     case "AUC"
+%     %         %legend(legstr, 'position', legpos, 'Interpreter', 'none', 'FontSize',9);
+%     %         legend(legstr, 'Location', 'best', 'Interpreter', 'none', 'FontSize',9);
+%     %     case "accuracy"
+%     %         legend(legstr, 'Location', 'best', 'Interpreter', 'none', 'FontSize',9);
+%     % end
+% 
+%     %xlabelpos = mean(get(gca, 'xlim'));
+%     %xlabeltext = xlabel('$M_{res}$', AxlabelArgs{:}, 'Position', [xlabelpos, 0.45, 0]); 
+% 
+% 
+% 
+% 
+% end
+% 
+% b = bar(axstr(1:length(resultFolder)), barData, 'FaceColor', 'flat', 'Interpreter', 'none');
+%     for k = 1:length(b) 
+%         for j = 1:size(b(k).CData,1)
+%             b(k).CData(j,:) = LineColors(k,:); 
+%         end
+%     end
+%     legend(legstr, 'Interpreter', 'none', 'Location', 'eastoutside');
+% 
+% 
+% 
+% 
+% end
+% 
+% 
+% 
+% end
+% 
+% plotPath = fullfile('..','results',rF,CrossVal);
+% exportgraphics(f, fullfile(plotPath, sprintf('%s_Performance_Comparison.pdf', DS)));
+% close(f)
+% 
+% 
+% 
+% 
+% end 
+% 
+% end

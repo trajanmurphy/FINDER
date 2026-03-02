@@ -6,10 +6,17 @@ switch parameters.multilevel.svmonly
             nLevels = length(parameters.misc.MachineList);
     case 0, nLevels = parameters.multilevel.l + 1;
     case 2, nLevels = length(parameters.multilevel.Mres); %parameters.multilevel.l + 1;
-        if parameters.multilevel.chooseTrunc
-            nLevels = 1;
-        end
+        
+    case 3, nLevels = length(parameters.multilevel.Mres); %parameters.multilevel.l + 1;
+        
+    case 4, nLevels = length(parameters.Ablation.List);
+
 end
+
+
+        % if parameters.multilevel.chooseTrunc && parameters.multilevel.svmonly == 2
+        %     nLevels = 1;
+        % end
 
 
 

@@ -13,6 +13,10 @@ rawSVM = rawSVM(~isnan(rawSVM));
 % predicted = squeeze(results.array(:,:,iLevel,:,2));
 % predicted = predicte(~isnan(rawSVM));
 
+if isempty(actual) || isempty(rawSVM)
+    continue
+end
+
 [Xroc, Yroc, ~, AUC] = perfcurve(actual, rawSVM, 1);
 results.AUC(iLevel) = AUC;
 

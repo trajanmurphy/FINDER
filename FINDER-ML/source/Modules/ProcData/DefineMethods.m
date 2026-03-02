@@ -7,7 +7,7 @@ delete(gcp('nocreate'))
 
 % methods for both
 methods.all.initialization = @InitializeParameters;%@InitializeComp_GCM; %  % Initialization for GCM dataset
-methods.all.filefunc = @filefunc2;
+methods.all.filefunc = @filefunc3;
 %methods.all.initialization = @InitializeComp_Lung; % Initialization for Lung dataset
 methods.all.readcancerData = @readData;
 methods.all.Datasize = @Datasize;
@@ -28,6 +28,15 @@ methods.all.ValuesTable = @InitializeValuesTable;
 %New methods
 %methods.all.SeparateData = @CompMultiSeparate;
 
+methods.data.GetCommonParameters = @GetCommonParameters;
+methods.data.ADNI_files =  cellfun(@(x) sprintf('Plasma_M12_%s',x),...
+                            {'ADCN', 'ADLMCI', 'CNLMCI'},...
+                            'UniformOutput', false);
+methods.data.CSF_files =  cellfun(@(x) sprintf('SOMAscan7k_KNNimputed_%s',x),...
+                            {'AD_CN', 'AD_EMCI', 'AD_LMCI', 'CN_EMCI', 'CN_LMCI', 'EMCI_LMCI'},...
+                            'UniformOutput', false);
+methods.data.Alz_files = [{'newAD'}, methods.data.ADNI_files, methods.data.CSF_files];
+methods.data.all_files = [{'GCM'}, methods.data.Alz_files];
 
 
 %Methods For Feature Map
@@ -106,23 +115,34 @@ methods.Multi.dataGeneralization = @CompMultiSemiSynthetic;
 
 methods.Multi2.CompMulti = @CompMultiACA2;
 methods.Multi2.Kfold = @CompMultiACA2Sub;
-methods.Multi2.ChooseTruncations = @MethodOfEllipsoids_26; %@MethodOfEllipsoids; %
+methods.Multi2.ChooseTruncations = @MethodOfEllipsoids_7; %@MethodOfEllipsoids_5; %@MethodOfEllipsoids; %
 methods.Multi2.InitializeResults = [];
 methods.Multi2.ConstructResidualSubspace = @ResidSubspace2; %@ConstructOptimalBasisDimL; %@ConstructResSpace2; %
 methods.Multi2.SepFilter = @SepFilter3; %@SepFilter3;
 methods.Multi2.SplitTraining = @SplitTraining;
 methods.Multi2.CloseFilter = @ConstructOptimalBasis;
 methods.Multi2.svd = @mysvd2;
-methods.Multi2.isTallMatrix = @(X) size(X,1) >= 3*size(X,2) && size(X,1) > 8000;
+methods.Multi2.isTallMatrix = @(X)  size(X,1) >= 3*size(X,2) && size(X,1) > 5000;
+
+methods.Multi2.FeatureSelect = @CompMultiFeatureSelect;
+methods.Multi2.FeatureSelectSub = @CompMultiFeatureSelectSub;
+methods.Multi2.SelectSVMFeatures = @SelectSVMFeatures;
+methods.Multi2.BinarySVD = @BinarySVD3;
+methods.Multi2.EigenbasisA = @ProjectOntoAMA3;
+methods.Multi2.EigenbasisB = @ProjectOntoT3;
+methods.Multi2.OmitFeatures = @SepFilter4;
 
 methods.Ellipsoids.GetTruncations = @GetTruncations_24;
 methods.Ellipsoids.ComputeSC = @ComputeSeparationCriterion;
 methods.Ellipsoids.IdentifyMisplaced = @IdentifyMisplaced;
 methods.Ellipsoids.plotHeatMap1 = @plotHeatMap1;
 
-methods.misc.Comp = @CompMiscMachines;
+methods.misc.Comp = @CompMiscMachines2;
 methods.misc.CompSub = @CompMiscMachines2Sub;
+methods.misc.Ablations = @CompAblation;
+methods.misc.AblationSub = @CompAblationSub;
 methods.misc.prep = @MiscMachinePrep;
+methods.misc.PCA = @SVMPCA; 
 methods.misc.SVM_Linear = @(X,Y) fitSVMPosterior(fitcsvm(X,Y));
 methods.misc.SVM_Radial = @(X,Y) fitSVMPosterior(fitcsvm(X,Y, ...
                                                     'KernelFunction', 'RBF', 'KernelScale', 'auto'));

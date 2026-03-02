@@ -1,0 +1,34 @@
+function array = CompAblationSub(Datas, parameters, methods, results)
+
+ip = @(str) strcmp(parameters.Ablation.List, str));
+
+KernelArgs = cell{size(parameters.Ablation.List)};
+
+KernelArgs{...
+    ip("2nd degree polynomial kernel")}...
+    = {'KernelFunction', 'polynomial', 'PolynomialOrder', 2};
+
+KernelArgs{...
+    ip("Kernel Scaling")}...
+    = {'KernelScale', 'auto'};
+
+KernelArgs{...
+    ip("L1 quadratic ")}...
+    = {'KernelScale', 'auto'};
+
+
+parameters.Ablation.List = ["2nd degree polynomial kernel",... Use polynomial kernel of order 2
+                            "Kernel scaling",... Set Kernel Scaling to 1
+                            "L1 quadratic programming solver",...Use L1 Quadrating Programming Solver as the optimization routine
+                            "Cross Validation Off"
+                            "5-fold cross validation",...set Number of folds to 5
+                            "standardized",... set to true
+                            "Delta gradient tolerance = $10^{-2}$"]; ... Stop convergence early
+
+
+for iab = 1:length(parameters.Ablation.List)
+    for j = 1:parameters.data.NBvals
+        parameters.data.j = j;
+
+    end
+nd

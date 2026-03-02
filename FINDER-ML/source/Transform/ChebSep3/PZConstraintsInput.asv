@@ -1,0 +1,7 @@
+function [cineq, ceq, gradineq, gradeq] = PZConstraintsInput(X, Datas, parameters, methods)
+
+cineq = methods.transform.constraints(X, Datas, parameters, methods);
+ceq = [];
+gradineq = methods.transform.constraintGradient(X, Datas, parameters, methods);
+gradeq = [];
+end

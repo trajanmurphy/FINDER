@@ -1,0 +1,25 @@
+function sub2 = ChebSep3sub2(X, Datas, parameters, methods)
+
+M = parameters.transform.dimTransformedSpace;
+P = parameters.data.numofgene;
+
+if M*P >= 10^5
+    zeromatrix = @sparse;
+    id = @speye;
+else
+    zeromatrix = @zeros;
+    id = @eye;
+end
+
+K = X(1:end-1) ; K = reshape(K, [P, M]) ; 
+r = X(end);
+
+RankA = sum(Datas.A.eigenvalues > parameters.transform.RankTol);
+EvalA = Datas.A.eigenvalues(1:RankA); EvecA = Datas.A.eigenvectors(:, 1:RankA);
+RankB = sum(Datas.B.eigenvalues > parameters.transform.RankTol);
+EvalB = Datas.B.eigenvalues(1:RankB); EvecB = Datas.B.eigenvectors(:, 1:RankB);
+
+
+
+
+end

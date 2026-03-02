@@ -1,0 +1,20 @@
+function [f, gradf] = AMHOobjective(X, sub, Datas, parameters, methods)
+
+%sub = methods.transform.optSub1(X, Datas, parameters, methods);
+
+f = sub.objective;
+
+X = X(:);
+
+switch sub.argument
+    case 'K'
+        dAlphaUB_dk = 2*X * Datas.A.Covariance * X;
+        dBetaUB_dK = sub.dBetaUB_dgamma * sub2.dgamma_theta' * sub2.dtheta_dy * sub2.dy_dk;
+        gradf = dAlphaUB_dk(:) + dBetaUB_dK(:);
+    case 'r'
+        dAlphaUB_dr = -2*r^-3 * trace(X' * Datas.A.Covariance * X);
+        dBetaUB_dr = sub2.dBetaUB_dgamma * sub2.dgamma_dr;
+        gradf = dAlphaUB_dr + dBetaUB_dr;
+end
+
+end

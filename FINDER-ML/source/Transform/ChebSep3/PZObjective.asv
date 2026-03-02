@@ -1,0 +1,28 @@
+function [f, gradf] = PZObjective(X, Datas, parameters, methods)
+
+if ~parameters.transform.ComputeTransform, return, end
+
+P = parameters.data.numofgene;
+M = parameters.transform.dimTransformedSpace;
+CovuA = Datas.A.covariance;
+nvars = M*P + 1; 
+
+
+%% Extract Input Variables K and r from vector X
+K = X(1:end-1); K = reshape(K, [P, M]); KT = KT';
+r = X(end);
+
+%% Compute objective f in terms of K and r
+T = trace(KT * CovuA * K);
+f = r^(-2) * T;
+
+
+%% Compute gradient of f in terms of K and r
+gradf = zeros(nvars, 1);
+gradfk = 2 * r^(-2) * CovuA * K; gradf(1:end-1) = gradfk(:);
+
+gradfr = 2 * r^(-3) * T;
+gradf(end) = gradfr;
+
+
+end

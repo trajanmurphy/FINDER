@@ -1,0 +1,107 @@
+function H = PZHessian(X, lambda, Datas, parameters, methods)
+
+sub2 = methods.transform.optSub2(X, Datas, parameters, methods);
+
+%ic = parameters.data.innerClass;
+%oc = parameters.data.outerClass;
+
+%% Construct Hessain of objective function 
+
+id = sub2.id(sub2.M);
+
+df_dk2 = 2/sub2.r^2 * kron(id, Datas.A.covariance);
+
+df_dkdr = -4 / sub2.r^3 * Datas.A.covariance*sub2.KT';
+
+df_dr2 = 6/sub2.r^4 * trace(sub2.KT * Datas.A.covariance * sub2.KT' ) ; 
+
+Hf = [ df_dk2 , df_dkdr(:) ;
+       df_dkdr(:)' , df_dr2];
+
+%Hg1 = Z(1:end-1, 1:end-1);
+%Hg2 = Z(1:end-1, 1:end-1);
+
+%% Construct Hessian of constraint 1 
+
+
+
+% Construct derivatives of g1 wrt y
+
+dg1_dy = sub2.dg1_dtheta' * sub2.dtheta_dy; dg1_dy = reshape(dg1_dy, [1,1,length(dg1_dy)]);
+
+%d2g1_dy2 = diag( sub2.dtheta_dy' * sub2.d2g1_dtheta2 * sub2.dtheta_dy);
+
+d2g1_dy2 = sub2.dtheta_dy' * sub2.d2g1_dtheta2 * sub2.dtheta_dy + ...
+            sub2.dg1_dtheta(1) * sub2.d2theta1_dy2;
+
+% d2g_dyj2 = sub2.zeromatrix(sub2.NB, 1);
+% for j = 1:size(sub2.NB,2)
+%     dtheta_dyj = sub2.dtheta_dy(:,j);
+%     d2theta_dyj2 = sub2.d2theta_dy2(:,j);
+% 
+%     d2g_dyj2(j) = dtheta_dyj' * sub2.d2g_dtheta2 * dtheta_dyj + sub2.dg1_dtheta' * d2theta_dyj2;
+% 
+% %     dg1_dyj = sub2.dg1_dtheta' * dtheta_dyj;
+% %     d2g1_dyj2 = dtheta_dyj' * sub2.d2g1_dtheta2 * dtheta_dyj + ...
+% %         sub2.dg1_dtheta' * d2theta_dyj2;
+% % 
+% %     ui = Datas.B.Training(:,j);
+% %     Qjk = ui * (ui' * sub2.KT'); Qjk = Qjk(:);
+% %     Qj = kron(id, ui* ui');
+% % 
+% %     %constraint 1
+% %     Hg1 = Hg1 + 4 * d2g1_dyj2 * (Qjk * Qjk') + 2 * dg1_dyj * Qj;
+% % 
+% %     %constraint 2
+% %     Hg2 = Hg2 + 4 * d2theta_dyj2 * (Qjk * Qjk') + 2 * dtheta1_dyj(1) * Qj;
+% end
+
+sz = size(Datas.B.Training);
+Q1 = reshape( Datas.B.Training, [sz(1) , 1, sz(2)] );
+Q2 = reshape( Datas.B.Training, [1, sz(1), sz(2)]);
+Qsub = pagemtimes(Q1, Q2);
+Qsub2 = sum(dg1_dy .* Qsub, 3);
+
+
+%Q = kron(id, Qsub2);
+
+d2g1_dk2 = sub2.dy_dk' * d2g1_dy2 * sub2.dy_dk + 2 * kron(id, Qsub2);
+
+%d2g1_drdk = [2/sub2.theta2 , 1]* sub2.dtheta_dy * sub2.dy_dk;
+d2g1_drdk = sub2.dg1_dgamma * (sub2.varKu)^(-2) * ...
+            [4*sub2.theta1 - 2*(sub2.varKu), -2*(sub2.theta1 - sub2.r)] *...
+            sub2.dtheta_dy * sub2.dy_dk;
+
+%d2g1_dr2 = -2/sub2.theta2;
+
+Hg1 = [d2g1_dk2 , d2g1_drdk(:);
+       d2g1_drdk(:)' , sub2.d2g1_dr2];
+
+%% Construct Hessian of constraint 2
+
+dtheta_dy = reshape(sub2.dtheta_dy(1,:), [1,1, length(sub2.dtheta_dy(1,:) )]);
+Qsub3 = sum(dtheta_dy .* Qsub,3);
+
+d2g2_dk2 = - sub2.dy_dk' * (sub2.d2theta1_dy2 .* sub2.dy_dk) + ...
+    kron(id, Qsub3);%sum(2*sub2.dtheta_dy(1,:) .* Q,3);
+
+Hg2 = padarray(d2g2_dk2, [1,1], 'post');
+
+H = Hf + lambda.ineqnonlin(1) * Hg1 + lambda.ineqnonlin(2) * Hg2;
+
+
+
+
+
+%Hg1 = [Hg1 , dg1_drdk(:);
+%       dg1_drk(:)', dg1_dr2];
+
+
+%Z2 = Z;
+%Z2(1:end-1, 1:end-1) = Hg2
+
+
+
+%H = Hf + lambda.ineqnonlin(1) * Hg1 + lambda.ineqnonlin(2) * Z2;
+
+end

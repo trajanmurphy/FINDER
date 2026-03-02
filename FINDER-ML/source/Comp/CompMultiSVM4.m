@@ -1,0 +1,123 @@
+clc;
+clear all;
+close all;
+
+
+methods = DefineMethods;
+
+MOEs = arrayfun( @(x) str2func(sprintf('MethodOfEllipsoids_%d',x)), 8:11, 'UniformOutput', false);
+
+DS = [methods.data.ADNI_files,...
+     {'newAD'},...
+     methods.data.CSF_files([1 3 5]),...
+     {'GCM'}];
+
+D = methods.all.ValuesTable('Balance', {true, false},...
+                            'Kernel', {true, false},...
+                            'Eigenspace', {'smallest', 'largest'},...
+                            'ChooseTrunc', {true},...
+                            'Name', DS,...
+                            'Ellipsoid', MOEs,...
+                            'PCA', {true},...
+                            'Algorithm', {2,0});
+
+D = D(100:end,:);
+D = D(~D.Balance & ~D.Kernel,:);
+
+for irow4 = height(D):-1:height(D)/2
+ t0 = tic;
+
+delete(gcp('nocreate'))
+parameters = methods.all.initialization() ;
+parameters.multilevel.splitTraining = D.Balance(irow4); %D{irow4,1};
+parameters.svm.kernal = D.Kernel(irow4); %D{irow4,2};
+parameters.multilevel.eigentag = D.Eigenspace{irow4}; % D{irow4,3};
+parameters.multilevel.svmonly = D.Algorithm(irow4); %D{irow4,4};
+parameters.multilevel.chooseTrunc = D.ChooseTrunc(irow4);
+methods.Multi2.ChooseTruncations = D.Ellipsoid{irow4};
+
+parameters.data.label = D.Name{irow4};
+parameters.data.name = [parameters.data.label '.txt'];
+parameters = methods.data.GetCommonParameters(parameters, methods);
+
+ for k = 1:parameters.data.nk
+     t1 = toc(t0);
+
+      % Read Data
+      parameters.data.currentiter=k; 
+      [Datas, parameters] = methods.all.readcancerData(parameters, methods);     
+      
+
+      %Initialize truncations if need be
+      % if parameters.multilevel.chooseTrunc
+      % parameters = methods.Multi2.ChooseTruncations(Datas, parameters, methods);
+      % return
+      % end
+      
+
+      parameters = methods.all.GetMaxMultiLevel(Datas, parameters, methods);
+
+      % Create results structure
+      [results] = methods.all.iniresults(parameters);
+
+
+     
+     %parameters.transform.istransformed = false;
+     
+     % Data size
+      % update parameters.data.n to number of simulated data points
+     [parameters] = methods.all.Datasize(Datas, parameters);
+
+     %Plot Data if handles are there
+      if parameters.transform.createPlots
+      if ~isempty(methods.transform.createPlot)
+          for i = 1:length(methods.transform.createPlot)
+              plotHandle = methods.transform.createPlot{i};
+              plotHandle(Datas, parameters, methods);
+          end
+          return
+      end
+      end
+
+     %Generate random genes
+     
+     % select random genes
+     [Datas] = methods.all.selectgene(Datas, parameters.data.numofgene, parameters.data.B);
+
+
+     
+     switch parameters.multilevel.svmonly 
+         case 1
+         %SVM Only
+         results = methods.SVMonly.CompSVMonly(methods, Datas, parameters, results);
+         case 0
+         % Multilevel Method with SVM
+         results = methods.Multi.CompMulti(methods, Datas, parameters, results);
+         parameters = ResidDimensionForMOLS(Datas, parameters, methods);
+         case 2
+         %Trajan's Multilevel Method with SVM
+         results = methods.Multi2.CompMulti(Datas, parameters, methods, results);
+         case 3
+         results = methods.Multi2.FeatureSelect(Datas, parameters, methods, results);
+             
+     end
+
+     
+     results = methods.all.ComputeAccuracyAndPrecision(Datas, parameters, methods, results);
+
+     t2 = toc(t0);
+      
+      results.run_time = duration(0,0,t2 - t1, 'Format', 'hh:mm:ss');
+      results.creation_time = datetime;
+     
+
+     parameters = methods.all.filefunc(parameters, methods);
+     Datas.rawdata.AData = []; Datas.rawdata.BData = [];
+     save(fullfile(parameters.datafolder,parameters.dataname), 'parameters', 'results', 'Datas');
+     save('irow4.mat','irow4');
+     clear Datas parameters results
+
+ end
+end
+ 
+

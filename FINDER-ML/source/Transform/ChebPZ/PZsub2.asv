@@ -1,0 +1,157 @@
+function sub2 = PZsub2(X, Datas, parameters, methods)
+
+M = parameters.transform.dimTransformedSpace;
+P = parameters.data.numofgene;
+
+if M*P >= 10^5
+    zeromatrix = @sparse;
+    id = @speye;
+else
+    zeromatrix = @zeros;
+    id = @eye;
+end
+
+K = X(1:end-1) ; K = reshape(K, [P, M]) ; KT = K';
+r = X(end);
+
+NB = size(Datas.B.Training,2);
+nvars = M*P + 1;
+
+y =  sum( (K' * Datas.B.Training).^2, 1);
+
+theta1 =  1/(NB - 1) * sum(sqrt(y));
+theta2 = 1/(NB - 1) * sum(y);
+varKu = theta2 - theta1^2;
+
+gamma = varKu / (theta1 - r)^2; %(theta1 - r)^2 / (varKu);
+
+g1 = 1 - parameters.beta - 1 / (1 + gamma);
+g2 = r - theta1;
+
+
+%% relevant derivatives of theta with respect to y
+dtheta_dy = 1/(NB -1) *[0.5 * y(:)'.^(-0.5) ;
+                        ones(1, length(y))];
+
+ %[-0.25 * y(:)'.^(-1.5) ; 
+               % zeros(1, length(y))];
+ d2theta1_dy2 = (-0.75)/(NB - 1) *  diag( y.^(-1.5) );
+
+
+
+%% relevant derivatives of gamma with respect to theta and r
+
+dgamma_dtheta = [-2*(theta2 - theta1*r) * (theta1 - r)^(-3);
+                (theta1 - r)^(-2)];
+
+d2gamma_dtheta2 = (theta1 - r)^(-4)*...
+                  [2*r*(theta1 - r) + 6*(theta2 - theta1*r) , ...
+                  -2 * (theta1 - r);...
+                  -2 * (theta1 - r),...
+                  0];
+
+dgamma_dr = -2 * varKu * (r - theta1)^(-3) ; 
+d2gamma_dr2 = 6 * varKu * (r - theta1)^(-4) ;
+
+
+% dgamma_dtheta = (varKu)^(-2) * [2*(theta1 - r)*(theta2 - r*theta1) ;
+%                                             -(theta1 - r)^2];
+% 
+% d2gamma_dtheta12 = (2*varKu^2 * (theta1 - 2*r*theta1 + r^2) + ...
+%                     8*theta1*(theta1 - r)*(theta2 - r*theta1)*varKu) / ...
+%                     (varKu)^4;
+% 
+% d2gamma_dtheta22 = 2*(theta1 - r)^2 / varKu^3;
+% 
+% d2gamma_dtheta1_dtheta2 = 2*(theta1 - r)*(varKu^2 - 2*(theta2 - r*theta1)*varKu) / varKu^3;
+% 
+% 
+% 
+% d2gamma_dtheta2 = [d2gamma_dtheta12 , d2gamma_dtheta1_dtheta2;
+%                    d2gamma_dtheta1_dtheta2 , d2gamma_dtheta22];
+% 
+% 
+% dgamma_dr = 2*(theta1 - r) / varKu;
+% d2gamma_dr2 = 2 / varKu;
+
+%% relevant derivatives of g1 wrt gamma
+dg1_dgamma = (1 + gamma)^(-2); %(1 - gamma)^(-2); 
+d2g1_dgamma2 = -2 * (1 + gamma)^(-3); %2*(1-gamma)^(-3);
+
+
+%% relevant derivatives of g1 wrt theta and r
+dg1_dtheta = dg1_dgamma * dgamma_dtheta;
+
+
+d2g1_dtheta2 = d2g1_dgamma2 * dgamma_dtheta * dgamma_dtheta' + ...
+                dg1_dgamma * d2gamma_dtheta2;
+
+dg1_dr = dg1_dgamma * dgamma_dr;
+
+d2g1_dr2 = d2g1_dgamma2 * dgamma_dr^2 + dg1_dgamma * d2gamma_dr2;
+
+
+% dg1_dtheta = [-2*(theta1 - r) / theta2 ;
+%             (theta1 - r)^2 / theta2^2 ];
+% 
+% d2g1_dtheta2 = [-2/theta1 , 2*(theta1 - r) / theta2^2 ;
+%                 2*(theta1 - r) / theta2^2 , -2*(theta1 - r)^2 / theta2^3];
+% 
+% 
+% dg1_dr = -2*(r- theta1) / theta2;
+% d2g1_dr2 = -2/theta2;
+% 
+
+
+
+%% relevant derivatives of g2 wrt theta and r
+dg2_dr = 1;
+d2g2_dr2 = 0;
+
+
+%% relevant derivatives of y wrt k
+dy_dk = zeromatrix(NB, M*P);
+for j = 1:NB
+    uj = Datas.B.Training(:,j);
+    dyj_dk = uj * uj' * K;
+    dy_dk(j,:) = dyj_dk(:)';
+end
+
+%% insert fields in struct
+sub2.M = M;
+sub2.P = P;
+sub2.nvars = nvars;
+sub2.KT = KT;
+sub2.r = r;
+sub2.zeromatrix = zeromatrix;
+sub2.id = id;
+sub2.y = y;
+sub2.theta1 = theta1;
+sub2.theta2 = theta2;
+sub2.varKu = varKu;
+
+sub2.g1 = g1;
+sub2.g2 = g2;
+
+sub2.dg1_dgamma = dg1_dgamma;
+
+sub2.dtheta_dy = dtheta_dy;
+%sub2.d2theta_dy2 = d2theta_dy2;
+sub2.d2theta1_dy2 = d2theta1_dy2;
+
+sub2.dg1_dtheta = dg1_dtheta;
+sub2.d2g1_dtheta2 = d2g1_dtheta2;
+
+sub2.dg1_dr = dg1_dr;
+sub2.d2g1_dr2 = d2g1_dr2;
+
+
+sub2.dg2_dr = dg2_dr;
+sub2.d2g2_dr2 = 0;
+
+sub2.dy_dk = dy_dk;
+
+PZ = @(r) 1 - parameters.beta - (1 + (varKu)/(theta1 - r).^2 )^(-1);
+
+
+end

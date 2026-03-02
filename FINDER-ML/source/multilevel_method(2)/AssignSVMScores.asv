@@ -1,0 +1,81 @@
+function parameters = AssignSVMScores(Datas, parameters, methods)
+close all
+
+%% Plot Parameters
+Nscores = 20;
+blue = hex2rgb('#0172aa');
+orange = hex2rgb('#eb8513');
+LW = 2; FA = 0.1;
+
+%% Express each sample in the Class A Eigenbasis
+p2 = parameters; p2.snapshots.k1 = 1;
+D1 = ProjectOntoAMA(Datas, p2, methods);
+
+
+%% Compute the middle 95% interval for each Class A feature
+alpha = (1 - parameters.multilevel.concentration)/2;
+%IA = quantile(D1.A.CovTraining, [alpha, 1 - alpha], 2);
+z = 1/sqrt(1 - parameters.multilevel.concentration);
+meanA = mean(D1.A.CovTraining,2);
+stdevA = std(D1.A.CovTraining,0,2); 
+IA = meanA + [-z z].*stdevA;
+
+%% For each feature, find the proportion of Class B not within the Class A 95% interval
+NB0 = D1.B.CovTraining <= IA(:, 1) | D1.B.CovTraining >= IA(:, 2); 
+NB1 = sum(NB0,2);
+propB = NB1 / size(D1.B.CovTraining,2);
+
+%% Find the average sign of each Class B feature
+SignB = sign(D1.B.CovTraining - meanA);
+meanSignB = abs(mean(SignB, 2));
+
+%% Compute the SVM separability score for each feature. 
+SLin = propB .* meanSignB;
+SRBF = propB .* (1 - meanSignB);
+
+%% Rank each feature according to its SVM separability score
+[~, RILin] = sort(SLin, 'descend'); SLinsort = SLin(RILin);
+[~, RIRBF] = sort(SRBF, 'descend'); SRBFsort = SRBF(RIRBF);
+
+% T = [RILin, SLinsort, RIRBF, SRBFsort];
+% T = array2table(T'); 
+% T.Properties.RowNames = {'Lin_Features', 'Lin_Score', 'RBF_Features', 'RBF_Score'}; 
+% disp(T);
+
+fprintf('SVM Linear Separability (First 20): \n');
+fprintf('% 5d ', RILin(1:Nscores)); fprintf('\n');
+fprintf('%0.3f ', SLinsort(1:Nscores)); fprintf('\n');
+fprintf('\nSVM Radial Separability (First 20): \n');
+fprintf('% 5d ', RIRBF(1:Nscores)); fprintf('\n');
+fprintf('%0.3f ', SRBFsort(1:Nscores)); fprintf('\n');
+
+
+%% Construct a plot with interval information
+
+%Copy Interval info for Class B
+%IB = quantile(D1.B.CovTraining, [alpha, 1 - alpha], 2);
+stdevB = s
+IB = 
+%IA = flipud(IA); IB = flipud(IB);
+
+%Create patch coordinates for Class A
+X0 = 1:parameters.data.numofgene - 1;
+XA = [X0, fliplr(X0)];
+YA = [IA(:,1)' fliplr(IA(:,2)')];
+
+%Create patch coordinates for Class B
+YB = [IB(:,1)' fliplr(IB(:,2)')];
+
+figure(); axes(); hold on
+%plot 95 CIs
+patch(XA, YB, orange, 'FaceAlpha', 0.2, 'EdgeColor', 'none');
+patch(XA, YA, blue, 'FaceAlpha', 0.6, 'EdgeColor', 'none');
+
+
+%plot means
+meanB = mean(D1.B.CovTraining,2);
+plot(X0, meanA, 'Color', blue, 'LineWidth', LW);
+plot(X0, meanB, 'Color', orange, 'LineWidth', LW);
+
+
+end

@@ -1,0 +1,358 @@
+function plotAUCs9
+
+%For each of MLS, ACA, and Benchmark, plot the best AUC and accuracy for
+%each of the hyperparameter selection methods. 
+
+close all
+
+%% Set Plot Parameters
+
+%MarkerSize = 20;
+tFS = 19;
+yFS = 17;
+xFS = 16;
+lFS = 13;
+
+capitalize = @(str) upper(extractBefore(str,2)) + extractAfter(str,1);
+
+LineColors = [0.12, 0.21, 1; %blue
+             1, 0.04, 0.12; %red
+             0.25, 0.25, 0.25]; %black
+            
+
+
+%% Set iterates
+%Balances = ["Unbalanced", "Balanced"];
+Balances = ["", "*"];
+Kernels = ["Linear", "RBF"];
+Accs = ["AUC", "accuracy"];
+Algos = ["MLS", "ACA-S", "ACA-L"];
+
+resultFolder = arrayfun(@(x) sprintf("MethodOfEllipsoids_%d",x), 8:11);
+HPS = ["Auto-I", "Auto-II", "Auto-III", "Auto-IV"];
+CrossVal = 'Kfold';
+
+DataSets = ["GCM", "newAD", ...
+            arrayfun(@(x) sprintf("Plasma_M12_%s",x),... 
+            ["ADCN", "ADLMCI", "CNLMCI"]),...
+            arrayfun(@(x) sprintf("SOMAscan7k_KNNimputed_%s", x),...
+            ["EMCI_LMCI", "CN_LMCI", "AD_LMCI", "AD_EMCI", "AD_CN"]) ];
+
+DataAliases = ["GCM", "newAD"...
+                arrayfun(@(x) sprintf("ADNI (%s)", x),...
+               ["AD vs. CN", "AD vs. LMCI", "CN vs. LMCI"]),...
+               arrayfun(@(x) sprintf("CSF (%s)",x),...
+               ["EMCI vs. LMCI", "CN vs. LMCI", "AD vs. LMCI", "AD vs. EMCI", "AD vs. CN"])...
+               ];
+
+RowNames = [...
+"Auto"
+"Algorithm1"
+"FINDER1"
+"Kernel1"
+"Benchmark"
+"Classifier"
+"Manual"
+"FINDER2"
+"Kernel2"
+"$\\Mres$"...
+];
+
+DSidx = [1:5, 10,8,7];
+Table = repmat("", length(RowNames), length(DSidx), length(Accs));
+
+
+
+%% Iterate over ADNIs, Balances, and Accuracy measures
+
+
+
+%Best = repmat(Best, size(DataSets));
+
+for iDS = DSidx
+    DS = DataSets(iDS);
+    DA = DataAliases(iDS);
+    
+    [f, ax] = CreateFigure;
+    iplot = 0; 
+
+    X0 = GetBenchAndBestFINDER(DS);
+
+    for Acc = Accs, Best.(Acc).Value = 0; end
+for iacc = 1:length(Accs)
+    Acc = Accs(iacc);
+
+     barData = nan(length(resultFolder), length(Algos));
+
+
+for iMethod = 1:length(resultFolder)
+    rF = resultFolder(iMethod);
+
+    folderpath = fullfile('..', 'results', rF, '**', '*.mat');
+    X = dir(folderpath); 
+    X(matches({X.name}, [".", ".."])) = [];
+    X(~contains({X.name}, DS)) = [];
+    X(~contains({X.folder},'Kfold')) = [];
+    X = X(contains({X.folder}, 'Leave_1_out') ) ;
+        
+        legstr = [];
+        for iAlgo = 1:length(Algos)
+            Algo = Algos(iAlgo);
+            X2 = X(contains({X.name}, Algo));
+
+            %% Get Better performing Kernel
+            X3 = arrayfun(@(x) load(fullfile(x.folder, x.name)), X2);
+            if isempty(X3), keyboard, end
+            [y1, iBestAcc] = max( arrayfun(@(x) max(x.results.(Acc)), X3));
+            X4 = X3(iBestAcc);
+            X5 = X2(iBestAcc);
+
+            
+                value = max(X4.results.(Acc));
+                if value > Best.(Acc).Value
+                    iDS2 = find(DSidx == iDS);
+
+
+                    
+
+
+                    Best.(Acc).Value = value;
+                    Table(RowNames == "Auto", iDS2, iacc) = sprintf("%0.3f", value);
+                    Table(RowNames == "Algorithm1", iDS2, iacc) = HPS(iMethod);
+                    Table(RowNames == "FINDER1", iDS2, iacc) = Algo + Balances(X4.parameters.multilevel.splitTraining + 1); %"-" ...
+                    Table(RowNames == "Kernel1", iDS2, iacc) =  Kernels(X4.parameters.svm.kernal + 1); 
+                    
+                    Table(RowNames == "Benchmark", iDS2, iacc) = sprintf("%0.3f", X0.(Acc).BestBenchValue);
+                    Table(RowNames == "Classifier", iDS2, iacc) = X0.(Acc).BestBenchMachine;
+                    
+                    Table(RowNames == "Manual", iDS2, iacc) = sprintf("%0.3f", X0.(Acc).BestFinderValue);
+                    Table(RowNames == "FINDER2", iDS2, iacc) = X0.(Acc).BestFinderAlgo + Balances(X0.(Acc).BestFinderBalance + 1);
+                    Table(RowNames == "Kernel2", iDS2, iacc) = Kernels(X0.(Acc).BestFinderKernel + 1);
+                    Table(RowNames == "$\\Mres$", iDS2, iacc) = string(X0.(Acc).BestFinderMres);
+   
+                end
+
+                barData(iMethod, iAlgo) = value;
+         
+        end
+
+end
+
+
+        %% Set up axes
+        axes(ax(iacc)); hold on, 
+        
+        %Set up title
+        %if iplot <= 2
+        %t = title(DA, 'Interpreter', 'latex', 'FontSize', tFS); 
+       
+        %end
+
+        %Set up y-axes
+
+        ylabel(capitalize(Acc), 'FontSize', yFS, 'Interpreter', 'latex');
+       
+
+        %Set up data & x-axes
+        b = bar(HPS, barData, 'FaceColor', 'flat', 'Interpreter', 'none');
+        for k = 1:length(b), for j = 1:size(b(k).CData,1)
+            b(k).CData(j,:) = LineColors(k,:); 
+        end, end
+       
+             ax(iacc).XAxis.FontSize = xFS;
+             
+             ax(iacc).YAxis.FontSize = yFS-5;
+             ax(iacc).YLabel.FontSize = yFS;
+           
+        %Set up legend
+        l = PlotBestBenchAndFinder(X0.(Acc));
+        legstr = [Algos, l];
+      legend(legstr, ...
+            'Interpreter', 'latex', ...
+            'Location', 'eastoutside', ...
+            'FontSize', lFS, ...
+            'Box', 'on');
+        
+
+end
+
+ MoveTitle(DA, tFS);
+plotPath = fullfile('..','results','Manual_Hyperparameter_Selection', 'Graphs');
+if ~isfolder(plotPath), mkdir(plotPath), end
+exportgraphics(f, fullfile(plotPath, sprintf('AHS_%s.pdf', DS)));
+close(f)
+
+end
+% = Best2Array(Best);
+
+DataAliases = DataAliases(DSidx);
+%disp(Table)
+save(fullfile(plotPath, 'Best.mat'), 'Table', 'RowNames', 'DataAliases');
+
+
+
+end
+
+%==========================================================================
+%==========================================================================
+function [f, ax] = CreateFigure
+f = figure('units','normalized','outerposition',[0.05 0.1 0.85 0.37]);
+
+Margin = 0.08; 
+WidthBetweenPlots = 0.08;
+Width = (1 - 2*Margin - WidthBetweenPlots) / 2;
+
+YTicks = 0.5:0.05:1;
+YTicks2 = 0.6:0.2:1;
+YTickLabels = repmat({''},size(YTicks)); 
+YTickLabels(ismember(YTicks,YTicks2)) = num2cell(YTicks2);
+
+Left = Margin;
+for i = 1:2 
+    ax(i) = subplot(1,2,i);
+    
+    ax(i).YTick = YTicks;
+    ax(i).YTickLabels = YTickLabels;
+    ax(i).YGrid = 'on';
+            ax(i).XTickLabelRotation = 30;
+            ax(i).Position(2) = 0.18;
+            ax(i).Position(1) = Left; 
+            ax(i).Position(3) = Width;
+            ax(i).Position(4) = 0.68;
+            ax(i).XAxis.TickLabelInterpreter = 'latex';
+            zoom(ax(i), 1.2);
+            ax(i).YLim = [0.5, 1];
+
+            Left = Left + Width + WidthBetweenPlots;
+end
+
+end
+%==========================================================================
+
+%==========================================================================
+function Xout = GetBenchAndBestFINDER(DS)
+    folderpath = fullfile('..', 'results', 'Manual_Hyperparameter_Selection', 'Kfold', '**', '*.mat');
+    X = dir(folderpath); 
+    X(matches({X.name}, [".", ".."])) = [];
+    X(~contains({X.name}, DS)) = [];
+    X(~contains({X.folder},'Leave_1_out')) = [];
+
+    isBench = contains({X.name}, 'Benchmark');
+    XB = load(fullfile(X(isBench).folder, X(isBench).name));
+
+    XF0 = X(~isBench);
+    XF1 = arrayfun(@(x) load(fullfile(x.folder, x.name)), XF0);
+
+    
+
+    for Acc = ["AUC", "accuracy"]
+        [Xout.(Acc).BestBenchValue, imax] = max(XB.results.(Acc));
+        Xout.(Acc).BestBenchMachine = XB.parameters.misc.MachineList(imax);
+
+        [M, iM] = arrayfun( @(x) max(x.results.(Acc)), XF1);
+        [M2,iF] = max(M); 
+
+        XF2 = XF1(iF);
+        Xout.(Acc).BestFinderMres = XF2.parameters.multilevel.Mres(iM(iF));
+
+        Xout.(Acc).BestFinderValue = M2;
+
+        switch XF2.parameters.multilevel.svmonly
+        case 0
+            Xout.(Acc).BestFinderAlgo = "MLS";
+        case 2
+            switch XF2.parameters.multilevel.eigentag
+            case 'largest'
+            Xout.(Acc).BestFinderAlgo = "ACA-L";
+            case 'smallest'
+            Xout.(Acc).BestFinderAlgo = "ACA-S";
+            end
+        end
+
+        Xout.(Acc).BestFinderBalance = XF2.parameters.multilevel.splitTraining;
+        Xout.(Acc).BestFinderKernel = XF2.parameters.svm.kernal;
+
+        
+    end
+
+end
+%==========================================================================
+%==========================================================================
+function l = PlotBestBenchAndFinder(X0)
+
+ gold = [0.85, 0.67, 0.2]; 
+ violet = 0.7*[0.5, 0.1, 0.8]; 
+ Kernels = ["-Lin", "-RBF"];
+ B = ["Unbalanced", "Balanced"];
+
+ yline(X0.BestBenchValue, '--', 'LineWidth', 3, 'Color', gold);
+ yline(X0.BestFinderValue, '--', 'LineWidth', 3, 'Color', violet);
+
+l(1) = replace(X0.BestBenchMachine, "_", "-"); 
+l(1) = replace(l(1), "Linear", "Lin");
+l(1) = replace(l(1), "Radial", "RBF"); ...
+    % ("_"|"Linear"|"Radial"), ...
+    % ("-"|"Lin"|"RBF"));
+
+newLineChar = " ";
+
+l(2) = X0.BestFinderAlgo; % + ...
+%         Kernels(X0.BestFinderKernel+1) ... 
+%        + string(char(10)) + sprintf("(Mres = %d, ", X0.BestFinderMres) ...
+%        + " " + B(X0.BestFinderBalance + 1) ...
+%        + ")";
+end
+%==========================================================================
+%==========================================================================
+function Array = Best2Array(Best)
+
+Rows = fields(Best(1).AUC);
+
+nDS = length(Best);
+nRows = length(Rows);
+Array = rempat("", nRows, nDS, 2);
+
+
+Accs = ["AUC", "accuracy"];
+for Acc = Accs
+for iDS = 1:nDS
+for iRow = 1:nRows
+    Row = Rows(iRow); 
+    fieldValue = Best(iDS).(Acc).(Row); 
+
+    if isnumeric(fieldValue), fieldValue = sprintf("%0.3f", fieldValue); end
+    Array(iRow, iDS, Accs = Acc) = fieldValue;
+end
+end
+end
+
+
+end
+%==========================================================================
+%==========================================================================
+function PrintAHSTable
+TablePath = fullfile("..", "results", "Manual_Hyperparameter_Selection", "Kfold", "Graphs");
+TableName = "AHS_Table.tex";
+
+fileID = fopen(TablePath + TableName, "w+");
+end
+%==========================================================================
+%==========================================================================
+
+function MoveTitle(DA, tFS)
+
+ax = findall(gcf, 'type', 'axes');
+
+
+annLeft = 0.5 * (ax(1).Position(1) + ax(1).Position(3) + ax(2).Position(1) );
+
+ann =  annotation('textbox', ...
+    'String', DA,...
+    'Interpreter', 'latex',...
+    'FontSize', tFS,...
+    ...'LineStyle', 'none', ...
+    'Position', [0.31, 1-0.5, 0.3, 0.5],...
+    'VerticalAlignment', 'middle',...
+    'HorizontalAlignment','center');
+       
+end

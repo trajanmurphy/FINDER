@@ -1,0 +1,24 @@
+function SC = SeparationCriterionOptfun(X0, Datas, parameters, methods)
+
+%Computes a diagonal matrix Sigma and Orthonormal matrix V such that the
+%new data Sigma * V * X induces a smaller separation criterion for
+%truncation parameter MA, MB. 
+
+Sigma = parameters.transform.X0(:,1);
+V = parameters.transform.X0(:,2:end);
+
+XA = Sigma(:) .* V * Datas.A.Training; %Transformed A matrix
+XB = Sigma(:) .* V * Datas.B.Training; %Transformed B matrix
+
+[~,EvalA, ~, EvecA, ~] = methods.Multi.snapshotssub(XA, parameters.transform.MA);
+EvecA = EvecA';
+EvecA = EvecA(:,1:end-1); %snapshotssub inserts mean as last column of EvecA, remove it
+
+[~,EvalB, ~, EvecB, ~] = methods.Multi.snapshotssub(XB, parameters.transform.MB);
+EvecB = EvecB;
+EvecB = EvecB(:,1:end-1); %snapshotssub inserts mean as last column of EvecA, remove it
+
+D = (EvecA' * EvecB) .^2 ; 
+SC = sum(D * EvecB(:)) / sum(EvalA) + sum(D' * EvalA(:) ) / sum(EvecB) ;
+
+end

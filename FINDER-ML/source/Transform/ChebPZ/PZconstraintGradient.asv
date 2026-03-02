@@ -1,0 +1,21 @@
+function [gradcon] = PZconstraintGradient(X, sub2, Datas, parameters, methods)
+
+%sub2 = methods.OptimizationSub2(X, Datas, parameters, methods)
+
+%K = reshape(X(1:end-1), [sub2.P, sub2.M]);
+gradcon = sub2.zeromatrix(2, sub2.nvars);
+
+for i = 1:size(Datas.B.Training,2)
+    ui = Datas.B.Training(:,i);
+    yi = ui * (ui' * K);
+    gradcon(1,i) = sub2.dg1_dtheta' * sub2.dtheta_dy * yi(:)' ;
+
+
+    gradcon(2,i) = - sub2.dtheta_dy(1,:)' * yi(:)';
+end
+    gradcon(1,end) = sub2.dg1_dtheta(1);
+
+
+
+
+end

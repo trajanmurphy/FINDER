@@ -1,4 +1,4 @@
-function ndata = standarized2(odata);
+function ndata = standarized2(odata)
 
 m = odata;
 len = size(m, 2);

@@ -11,7 +11,7 @@ ep = 0.001;
 
 
 close all
-TablePath = fullfile('..','results2','Manual_Hyperparameter_Selection', 'Kfold', 'Tables');
+TablePath = fullfile('..','results2','Manual_Hyperparameter_Selection', 'Graphs');
 load(fullfile(TablePath, 'RunTimeData.mat')); 
     Run_Times = Run_Times';
     [Run_Times, Headers] = RearrangeRun_Times(Run_Times, Headers);
@@ -224,17 +224,19 @@ PlotLefts = [Margins + PlotLefts(1) ...
             (2:length(Units))*WidthBetweenPlots + PlotLefts(2:end)];
 
 
-f = figure('units','normalized','outerposition',[0 0.1 0.85 0.65]);
+f = figure('units','normalized','outerposition',[0 0.1 0.85 0.50]);
 %ax = axes;
 
 FirstLeft = Margins;
 for i = 1:length(Units), ax(i) = subplot(1,length(Units),i); end
 axBottomUnit = 0.35 * ax(1).Position(3);
+figBottom = 0.5;
+
 for i = 1:length(Units)
     ax(i).Position = [FirstLeft,...
-        0.37,...
+        figBottom,...
         PlotWidths(i),...
-        0.52];
+        0.95-figBottom];
     FirstLeft = FirstLeft + PlotWidths(i) + WidthBetweenPlots;
 end
 
@@ -279,8 +281,11 @@ function l = SetLegend(Headers)
 
 Margins = 0.13;
 Width = 1 - 2*Margins;
-Position = [Margins, 0.07068, Width, 0.0759];
+LegHeight = 0.0759;
+LegBottom = 0.18 - 0.5*LegHeight;
+Position = [Margins, LegBottom, Width, LegHeight];
 l = legend([Headers{:}], 'Location', 'southoutside', ...
     'Orientation', 'Horizontal', 'Interpreter', 'latex', ...
     'FontSize', 13, 'NumColumns', 7, 'Position',  Position);
+
 end

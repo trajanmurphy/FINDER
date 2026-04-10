@@ -1,0 +1,41 @@
+function [Datas, parameters] = corruptData(parameters, methods)
+
+if ~strcmp(parameters.data.validationType, 'Synthetic'), return, end
+
+
+omega = parameters.synthetic.functionTransform;
+sigma = parameters.synthetic.GaussianNoiseFactor;
+
+logicGate = ~(isempty(omega) && isempty(sigma) );
+
+assert(logicGate, ...
+    ['Only one of parameters.synthetic.functionTransform ' ...
+    'and parameters.synthetic.GaussianNoiseFactor can be nonempty']);
+
+%% Compute Sine Transform 
+if ~isempty(omega)
+    if isnumeric(omega)
+        transformHandle = @(x) sin(omega*x);
+        for CData = ["AData", "BData"]
+            Datas.rawdata.(CData) = transformHandle(Datas.rawdata.(CData));
+        end
+    end
+
+end
+
+
+%% Add Gaussian Noise
+if ~isempty(sigma)
+
+    for C = ["AData", "BData"]
+        D = Datas.rawdata.(CData);
+         [~,scaleFactor,~] =  svds(D,1,'largest'); 
+         scaleFactor = sigma*scaleFactro;
+        noise = scaleFactor + randn(size(D));
+        Datas.rawdata.(CData) = D + noise;
+    end
+
+end
+
+
+ end

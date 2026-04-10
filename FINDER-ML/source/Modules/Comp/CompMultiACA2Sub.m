@@ -17,7 +17,7 @@ for j = parameters.data.NBvals
     Datas = methods.transform.tree(Datas, parameters, methods); % Compute Transformation K using training data, apply to training and validation data 
     
     parameters = methods.Multi2.ChooseTruncations(Datas, parameters, methods);
-    Datas = methods.Multi2.ConstructResidualSubspace(Datas, parameters, methods); %Construct Filter
+    [Datas, parameters] = methods.Multi2.ConstructResidualSubspace(Datas, parameters, methods); %Construct Filter
 
     
 

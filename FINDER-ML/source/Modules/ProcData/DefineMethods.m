@@ -9,7 +9,7 @@ delete(gcp('nocreate'))
 methods.all.initialization = @InitializeParameters;%@InitializeComp_GCM; %  % Initialization for GCM dataset
 methods.all.filefunc = @filefunc3;
 %methods.all.initialization = @InitializeComp_Lung; % Initialization for Lung dataset
-methods.all.readcancerData = @readData;
+methods.all.readcancerData = @readData2;
 methods.all.Datasize = @Datasize;
 methods.all.parloopoff = @parloopoff;
 methods.all.normalizedata = @standarized2;
@@ -23,8 +23,9 @@ methods.all.wipeTraining = @wipeTraining;
 methods.all.ComputeAccuracyAndPrecision = @FinalizeResults;
 methods.all.predict = @CompPredictAUC2;
 methods.all.covariance = @UpdateCovariance;
-methods.all.GetMaxMultiLevel = @GetMaxMultiLevel;
+methods.all.GetMaxMultiLevel = @GetMaxMultiLevel2;
 methods.all.ValuesTable = @InitializeValuesTable;
+methods.all.corruptData = @corruptData;
 %New methods
 %methods.all.SeparateData = @CompMultiSeparate;
 
@@ -86,7 +87,7 @@ methods.Multi.CompMulti = @CompMulti;
 %methods.Multi.procdata = @MProcData; 
 methods.Multi.snapshots = @snapshots1;   
 methods.Multi.snapshotssub = @snapshotssub; %@snapshotssub;
-methods.Multi.generateData=@snapshotsgendata;
+methods.Multi.generateData= @kernelGenData; %@snapshotsgendata;
 methods.Multi.dsgnmatrix = @DesignMatrix;
 methods.Multi.dsgnmatrixsub = @DesignMatrixsub;
 methods.Multi.PrepDataRealization = @PrepDataRealization;
@@ -106,9 +107,9 @@ methods.Multi.datasvmsub2 = @datasvmsub2;
 methods.Multi.parallel = @CompMultiKfoldParallel; %@CompMultiParallel; %
 methods.Multi.noparallel = @CompMultiKfoldNoParallel;
 methods.Multi.orthonormal_basis = @orthonormal_basis;
-methods.Multi.Filter = @CompMultiConstructFilter2;
+methods.Multi.Filter = @CompMultiConstructFilter4;
 methods.Multi.predict = @CompMultiPredict;
-methods.Multi.machine = @CompMultiConstructMachine;
+methods.Multi.machine = @CompMultiConstructMachine2;
 methods.Multi.nested = @MultiLevelNested;
 methods.Multi.dataGeneralization = @CompMultiSemiSynthetic;
 
@@ -117,12 +118,12 @@ methods.Multi2.CompMulti = @CompMultiACA2;
 methods.Multi2.Kfold = @CompMultiACA2Sub;
 methods.Multi2.ChooseTruncations = @MethodOfEllipsoids_7; %@MethodOfEllipsoids_5; %@MethodOfEllipsoids; %
 methods.Multi2.InitializeResults = [];
-methods.Multi2.ConstructResidualSubspace = @ResidSubspace2; %@ConstructOptimalBasisDimL; %@ConstructResSpace2; %
+methods.Multi2.ConstructResidualSubspace = @SmoothResidualComponents; %@ResidSubspace3; 
 methods.Multi2.SepFilter = @SepFilter3; %@SepFilter3;
 methods.Multi2.SplitTraining = @SplitTraining;
 methods.Multi2.CloseFilter = @ConstructOptimalBasis;
 methods.Multi2.svd = @mysvd2;
-methods.Multi2.isTallMatrix = @(X)  size(X,1) >= 3*size(X,2) && size(X,1) > 5000;
+methods.Multi2.isTallMatrix = @(X)  size(X,1) >= 3*size(X,2) && size(X,1) > 8000;
 
 methods.Multi2.FeatureSelect = @CompMultiFeatureSelect;
 methods.Multi2.FeatureSelectSub = @CompMultiFeatureSelectSub;

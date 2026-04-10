@@ -31,7 +31,7 @@ DA2 = [repmat("", size(DataAliases)) ; DataAliases ];
 
 
 Balances = ["Balanced", "Unbalanced"];
-Accs = ["F1score", "accuracy"];
+Accs = ["AUC", "accuracy"];
 Algos = ["MLS", "ACA" "Benchmark"];
 switch TrimB, case true, nm = 11; case false, nm = 13; end
 barArray = nan(length(DataSets), nm, 2, 2);
@@ -161,9 +161,22 @@ end
 
 function [f ax] = CreateFigure
 
-f = figure('units','normalized','outerposition',[0 0 0.85 0.85]);
+
+figHeight = 0.75;
+figWidth = 0.85;
+figLeft = 0.95 - figWidth;
+figBottom = 0.95 - figHeight;
+figPos = [figLeft, figBottom, figWidth, figHeight];
+
+f = figure('units','normalized','outerposition',figPos);
 nax = 2;
-for i = 1:nax, ax(i) = subplot(nax,1,i); end
+axHeights = [0.75, 0.25];
+for i = 1:nax
+    ax(i) = subplot(nax,1,i); 
+    ax(i).Position(4) = 0.8*ax(i).Position(4);
+    ax(i).Position(2) = axHeights(i) - 0.5*ax(i).Position(4);
+    
+end
 
 end
 
@@ -173,7 +186,7 @@ function X = GetFiles(DS, nesting)
     %nesting = 'Unnested';
     resultFolder = 'Manual_Hyperparameter_Selection';
     CrossVal = 'Kfold';
-    folderpath = fullfile('..', 'results', resultFolder, CrossVal, DS);
+    folderpath = fullfile('..', 'results2', resultFolder, CrossVal, DS);
     X = dir(folderpath); X(matches({X.name}, [".", ".."])) = [];
     Leave_K_out = {X.name};
     K = cellfun(@(x) extractBetween(x, 'Leave_', '_out'), Leave_K_out);
@@ -205,9 +218,11 @@ lFS = 12;
 
 axNames = {'YLim', 'YGrid', 'fontsize', 'YTickMode', 'ytick','YTickLabels'};
 axValues = {[0.5, 1], 'on', 11, 'manual', YTicks, YTickLabels};
+
 for iax = 1:length(ax)%, for idir = ["left", "right"]
 %yyaxis(idir)
 cellfun(@(x,y) set(ax(iax), x,y), axNames, axValues);
+
 end%, end
 %LineArgs = {'LineWidth', 3, 'Marker', 's', 'MarkerSize', MarkerSize, 'MarkerFaceColor', 'auto'};
 AxlabelArgs = {'Interpreter', 'latex', 'FontSize'};
@@ -224,7 +239,12 @@ ax(1).XTickLabel = {};
 l = legend(legstr, 'Location', 'southoutside', ...
     'Orientation', 'Horizontal', AxlabelArgs{:}, lFS);
 l.NumColumns = 5;
-l.Position([1 2]) = [0.2442 0.47];
+
+%% Center legend
+legBottom = 0.5 - 0.5*l.Position(4);
+legLeft = 0.5 - 0.5*l.Position(3);
+l.Position([1 2]) = [legLeft, legBottom];
+%l.Position([1 2]) = [0.2442 0.47];
 ylabel('AUC', AxlabelArgs{:}, yFS);
 
 
@@ -237,6 +257,7 @@ for i = 1:length(ax)
     currentYLim = ax(i).YLim;
     zoom(ax(i), 1.09);
     ax(i).YLim = currentYLim;
+    ax(i).XAxis.TickLength = [0 0];
 end
 
 %ax(2).FontSize = xFS;

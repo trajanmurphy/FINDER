@@ -1,5 +1,5 @@
 Datasets = [...
-              "newAD", 
+            "newAD", 
             "Plasma_M12_ADCN", 
             "Plasma_M12_ADLMCI",
             "Plasma_M12_CNLMCI",
@@ -12,39 +12,45 @@ Datasets = [...
 myload = @(x) load(fullfile(x.folder, x.name));
 thisdir = pwd;
 methods = DefineMethods;
-rF = ["results"];
+rF = ["results2"];
 CV = ["Kfold"];
+MOEs = arrayfun(@(x) sprintf("MethodOfEllipsoids_%d",x), 8:11);
 Balances = ["Balanced", "Unbalanced"];
-Accs = ["AUC", "accuracy"];
+Accs = ["accuracy"];
 
 
 
 
 for DS = Datasets(:)'
   fprintf('Processing %s \n', DS);
-
-  %Get Balanced result
-  homePath = fullfile('..', rF, 'Manual_Hyperparameter_Selection', CV, DS, 'Leave_1_out');
-  X = dir(fullfile(homePath, '**', '*.mat'));
+  X = dir(fullfile('..', 'results2', 'Manual_Hyperparameter_Selection', ...
+      CV, DS, '**', '*.mat'));
   isBench = contains({X.name}, 'Benchmark');
   XB = X(isBench);
   YB = load(fullfile(XB.folder, XB.name));
 
 for Acc = Accs
 
-  [BestBaseline,iBest] = max(YB.results.(Acc));
+[BestBaseline,iBest] = max(YB.results.(Acc));
 
-  BenchmarkActual = squeeze(YB.results.array(:,:,iBest,:,1));
-  BenchmarkActual = BenchmarkActual(~isnan(BenchmarkActual));
-  BenchmarkPredicted = squeeze(YB.results.array(:,:,iBest,:,3));
-  BenchmarkPredicted = BenchmarkPredicted(~isnan(BenchmarkPredicted));
-  BenchmarkCorrect = BenchmarkActual == BenchmarkPredicted;
-  BenchmarkIncorrect = ~BenchmarkCorrect;
+BenchmarkActual = squeeze(YB.results.array(:,:,iBest,:,1));
+BenchmarkActual = BenchmarkActual(~isnan(BenchmarkActual));
+BenchmarkPredicted = squeeze(YB.results.array(:,:,iBest,:,3));
+BenchmarkPredicted = BenchmarkPredicted(~isnan(BenchmarkPredicted));
+BenchmarkCorrect = BenchmarkActual == BenchmarkPredicted;
+BenchmarkIncorrect = ~BenchmarkCorrect;
 
-  XF = X(~isBench);
+for MOE = MOEs
+  %Get Balanced result
+  homePath = fullfile('..', rF, MOE, CV, DS, 'Leave_1_out', '**', '*.mat');
+  XF = dir(homePath);
+  
+  
+
+
+  %XF = X(~isBench);
 
 for i = 1:length(XF)
-   % fprintf('\n%s\n', extractBefore(XF(i).name, '-Eigen'));
     
     %Get result
     fileName = fullfile(XF(i).folder, XF(i).name);
@@ -59,24 +65,25 @@ for i = 1:length(XF)
   FinderActual = FinderActual(~isnan(FinderActual));
   FinderPredicted = squeeze(YF.results.array(:,:,iL,:,3));
   FinderPredicted = FinderPredicted(~isnan(FinderPredicted));
+  if isempty(FinderActual) || isempty(FinderPredicted), continue, end
   FinderCorrect = FinderActual == FinderPredicted;
   FinderIncorrect = ~FinderCorrect;
 
-[C, order] = confusionmat(BenchmarkCorrect, FinderCorrect, 'Order', [1 0]); 
-order = string(num2str(order));
-C = array2table(C, RowNames = ["True0" "True1"], VariableNames = ["Predicted0" "Predicted1"]);
+% [C, order] = confusionmat(BenchmarkCorrect, FinderCorrect, 'Order', [1 0]); 
+% order = string(num2str(order));
+% C = array2table(C, RowNames = ["True0" "True1"], VariableNames = ["Predicted0" "Predicted1"]);
 %disp(C)
 
 
   B = sum(BenchmarkCorrect & FinderIncorrect);
   C = sum(BenchmarkIncorrect & FinderCorrect);
   
-  switch YF.results.(Acc)(iL) > BestBaseline
-      case true 
+  %switch YF.results.(Acc)(iL) > BestBaseline
+      %case true 
          testStatistic = (abs(B - C) - 1)^2 / (B + C);
-      case false 
-          testStatistic = 0;
-  end
+     % case false 
+         % testStatistic = 0;
+  %end
   pvaluesMcNemar(iL) = chi2cdf(testStatistic,1,'upper');
   pvaluesWilcoxon(iL) = signrank(double(FinderCorrect), ...
       double(BenchmarkCorrect), 'tail', 'right');
@@ -93,6 +100,8 @@ C = array2table(C, RowNames = ["True0" "True1"], VariableNames = ["Predicted0" "
   % fprintf('\nWilcoxon p-values: \n', pvaluesWilcoxon);
   % fprintf('%0.3f, ', pvaluesWilcoxon);
   save(fileName, '-struct', 'YF');
+
+end
 
 end
 

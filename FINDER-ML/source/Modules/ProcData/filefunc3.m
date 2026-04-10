@@ -22,6 +22,7 @@ switch parameters.data.validationType
                         parameters.synthetic.Brs(parameters.data.currentiter), ...
                         parameters.synthetic.NTest);
 
+        if ~isempty(parameters.synthetic.functionTransform)
             if strcmp(parameters.synthetic.functionTransform, 'id')
                 str = 'id';
             elseif isnumeric(parameters.synthetic.functionTransform)
@@ -29,6 +30,10 @@ switch parameters.data.validationType
             else
                 error('parameters.synthetic.functionTransform must be id or a real number');
             end
+        elseif ~isempty(parameters.synthetic.GaussianNoiseFactor)
+            str = sprintf('Noise_%0.g', parameters.synthetic.GaussianNoiseFactor);
+            str = replace(str, '.', '_');
+        end
 
         split_tag = [split_tag, filesep, str];
 

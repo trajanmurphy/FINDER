@@ -17,10 +17,14 @@ DataAliases = ["GCM", "newAD", ...
                ];
 
 
-DSidx = [8];
+DSidx = [1:5, 11,9,8];
+fileID = fopen('AHS_Frequencies.tex', 'w+');
 
 for iDS = DSidx
     DS = DataSets(iDS); DA = DataAliases(iDS);
+
+   
+    fprintf(fileID, 'Processing %s\n', DS);
 
     
     
@@ -28,6 +32,8 @@ for iDS = DSidx
     if isempty(X0); continue, end
     [f, ax] = CreateFigure(DA);
     X1 = CreateMatrices(X0);
+   
+    PrintMode(fileID, X1);
     CreateMaps(X1, ax);
     FixFigure(ax);
     filePath = fullfile('..','results', 'Manual_Hyperparameter_Selection', 'Graphs', ...
@@ -58,7 +64,8 @@ svmonlys = [0 2];
 %% Extract relevant info from Table
 column = Table(:,DataAliases == DA,iAcc);
 FINDER1 = column(RowNames == "FINDER1");
-isRBF = contains(FINDER1, "dagger"); %column(RowNames == "Kernel1") == "RBF";
+%isRBF = contains(FINDER1, "dagger"); %column(RowNames == "Kernel1") == "RBF";
+isRBF = column(RowNames == "Kernel1") == "RBF";
 isBalanced = contains(FINDER1, "*");
 eigentag = char(eigentags(contains(FINDER1, "-L") + 1));
 svmonly = svmonlys(contains(FINDER1, "ACA") + 1);
@@ -116,7 +123,7 @@ annGap = 0.95; %Number between 0 and 1
 dFS = 19;
 hFS = 16;
 
-f = figure('Units', 'Normalized', 'Position', [0.05, 0.05, figWidth, figHeight]);
+f = figure('Units', 'Normalized', 'Position', [0.05, 0.95-figHeight, figWidth, figHeight]);
 LeftMargin = 0.1; RightMargin = LeftMargin + 0.02;
 WidthBetweenPlots = 0.05;
 numCol = 4;
@@ -186,7 +193,7 @@ annBottom = plotsHeight*1.2; %annGap*(1 - plotsHeight  - annHeight);
 annPosition = [annLeft annBottom annWidth annHeight];
 
 ann = annotation('textbox', annPosition, ...
-    'String', DA, ...
+    'String', "", ...DA, ...
     'Interpreter', 'latex',...
     'FontSize', dFS,...
     'FontWeight', 'bold',...
@@ -244,6 +251,9 @@ for i = 1:length(X0.(Acc))
     % X1.(Acc)(i).Mres = MresRange;
     X1.(Acc)(i).matrix = matrix;
 
+
+    
+
 end
 end
 
@@ -260,7 +270,7 @@ numAx = length(ax);
 for i = 1:numAx
     axes(ax(i));
 
-    iRow = ceil(numAx / numCol);
+    iRow = ceil(i / numCol);
     iCol = mod(i,numCol); iCol(iCol == 0) = numCol;
     Acc = Accs(iRow);
 
@@ -384,3 +394,46 @@ end
 end
 %==========================================================================
 %==========================================================================
+function PrintMode(fileID, X1)
+
+if false, return, end
+
+Accs = string(fields(X1(1)));
+
+for Acc = Accs'
+    % [Max0, ~] = arrayfun(@(x) max(x.matrix, [], 'all'), X1.(Acc) );
+    % [~, iMax0] = max(Max0);
+    % 
+    % 
+    % 
+    % matrix = X1.(Acc)(iMax0).matrix;
+    % MA = X1.(Acc)(iMax0).MA;
+    % Mres = X1.(Acc)(iMax0).Mres;
+    % 
+    % [Max1, iMax1] = max(matrix, [], 'all');
+    % [iMres, iMA] = ind2sub(size(matrix), iMax1);
+    % modeMA = MA(iMA);
+    % modeMres = Mres(iMres);
+    % 
+    % fprintf('\t Mode MA: %d\n', modeMA);
+    % fprintf('\t Mode Mres: %d\n', modeMres);
+    % fprintf('\t Frequency: %d %% \n', round(100*Max1));
+    fprintf(fileID, '%s:\n', Acc);
+    [Max0, iMax0] = arrayfun(@(x) max(x.matrix, [], 'all'), X1.(Acc) );
+    [iMA, iMres] = arrayfun(@(x,y) ind2sub(size(x.matrix), y), X1.(Acc), iMax0);
+    modeMA = arrayfun(@(x,y) x.MA(y), X1.(Acc), iMA);
+    modeMres = arrayfun(@(x,y) x.Mres(y), X1.(Acc), iMres);
+    fprintf(fileID, '\t Mode MA: |');
+    fprintf(fileID, ' %d |', modeMA); 
+    fprintf(fileID, '\n\t Mode Mres: |');
+    fprintf(fileID, ' %d |', modeMres);
+    fprintf(fileID, '\n\t Frequency: |');
+    fprintf(fileID, '%d %% |', round(100*Max0));
+    fprintf(fileID, '\n');
+   
+
+
+end
+ fprintf(fileID, '=====================================\n');
+
+end

@@ -19,6 +19,7 @@ methods = DefineMethods;
 
       % Read Data
       parameters.data.currentiter=k; 
+      parameters = methods.data.GetCommonParameters(parameters, methods);
       [Datas, parameters] = methods.all.readcancerData(parameters, methods);     
       
 
@@ -67,7 +68,7 @@ methods = DefineMethods;
          case 0
          %MLS
          results = methods.Multi.CompMulti(methods, Datas, parameters, results);
-         parameters = ResidDimensionForMOLS(Datas, parameters, methods);
+         %parameters = ResidDimensionForMOLS(Datas, parameters, methods);
          case 2
          %ACA 
          results = methods.Multi2.CompMulti(Datas, parameters, methods, results);

@@ -2,7 +2,18 @@ function [parameters] = InitializeParameters()
 
 %% Data parameters
 parameters.data.path = '';
-parameters.data.label = 'GCM';
+%'/restricted/projectnb/sctad/Audrey/SOMAscan7k_KNNimputed_formatted_data/';
+%'/restricted/projectnb/sctad/ADNI_Plasma_Sicheng/';
+%'';
+%'/restricted/projectnb/sctad/Codes/Yumeng/';
+
+
+
+parameters.data.label = 'Plasma_M12_CNLMCI';
+%'SOMAscan7k_KNNimputed_EMCI_LMCI';
+%'GCM';
+%'newAD'; 
+
 parameters.data.name = [parameters.data.label, '.txt'];
 
 parameters.data.validationType = 'Kfold';  %One of 'Synthetic', 'Kfold', or 'Cross'
@@ -20,19 +31,20 @@ parameters.Kfold = 1; %If parameters.data.generealization is set to 1,
 
 
 %% Semi-synthetic data realization parameters
-parameters.synthetic.functionTransform = 'id'; %if 'id';
-parameters.synthetic.NKLTerms = 145; % KL Truncation for generating Semisynthetic Data
-parameters.synthetic.Ars = [150, 450, 1500, 10000];
-parameters.synthetic.Brs = [100, 100, 100, 100];
+parameters.synthetic.functionTransform = []; %if 'id';
+parameters.synthetic.GaussianNoiseFactor = [];
+parameters.synthetic.NKLTerms = 88; % KL Truncation for generating Semisynthetic Data
+parameters.synthetic.Ars = [600];
+parameters.synthetic.Brs = [200];
 parameters.synthetic.NTest = 10000;
 
 
 %% MultiLevel parameters
-parameters.snapshots.k1 = 16;% KL Truncation for Class A
+parameters.snapshots.k1 = 8;% KL Truncation for Class A
 parameters.multilevel.svmonly = 2; % 0 = MLS, 1 = Benchmark, 2 = ACA
-parameters.multilevel.splitTraining = false; % true = Balanced, false = Unbalanced
-parameters.multilevel.eigentag = 'smallest'; %'largest' = ACA-L, 'smallest' = ACA-S
-parameters.multilevel.Mres_manual = [];%200:200:2000;
+parameters.multilevel.splitTraining = true; % true = Balanced, false = Unbalanced
+parameters.multilevel.eigentag = 'largest'; %'largest' = ACA-L, 'smallest' = ACA-S
+parameters.multilevel.Mres_manual = 140;%200:200:2000;
 parameters.multilevel.Mres_auto = [];
 %parameters.multilevel.Mres = unique([parameters.multilevel.Mres_manual(:),...
  %                             parameters.multilevel.Mres_auto(:)]);
@@ -45,7 +57,8 @@ parameters.multilevel.concentration = 0.95; %algorithmic parameter selection par
 
 %% Baseline performance parameters
 parameters.misc.MachineList = ["SVM_Linear-PCA", "SVM_Radial-PCA", "SVM_Linear", "SVM_Radial", "LogitBoost", "RUSBoost", "Bag"]; %Benchmark learners
-parameters.misc.PCA = true;
+%["SVM_Linear-PCA", 
+parameters.misc.PCA = [];
 
 %% Ablation List
 parameters.Ablation.List = ["2nd degree polynomial kernel",... Use polynomial kernel of order 2

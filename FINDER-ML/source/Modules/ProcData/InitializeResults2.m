@@ -14,9 +14,9 @@ switch parameters.multilevel.svmonly
 end
 
 
-        % if parameters.multilevel.chooseTrunc && parameters.multilevel.svmonly == 2
-        %     nLevels = 1;
-        % end
+    if parameters.multilevel.chooseTrunc %&& parameters.multilevel.svmonly == 2
+        nLevels = 1;
+    end
 
 
 

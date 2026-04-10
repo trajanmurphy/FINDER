@@ -28,7 +28,7 @@ switch parameters.multilevel.nested
 end
 
 if isempty(parameters.multilevel.Mres_auto)
-    parameters.multilevel.Mres = paraemters.multilevel.Mres_manual;
+    parameters.multilevel.Mres = parameters.multilevel.Mres_manual;
 elseif strcmp(parameters.multilevel.Mres_auto, 'MLS')
     parameters.multilevel.Mres = [parameters.multilevel.Mres_manual, Mres_auto];
 end

@@ -4,54 +4,43 @@ close all;
 
 
 methods = DefineMethods;
-methods.all.initialization = @InitializeParameters;
-methods.Multi2.ChooseTruncations = @MethodOfEllipsoids_8; %@MethodOfEllipsoids; %
-methods.data.Alz_files(...
-    contains(methods.data.Alz_files, ...
-    {'AD_EMCI', 'CN_EMCI','EMCI_LMCI'})) = [];
 
+MOEs = arrayfun( @(x) str2func(sprintf('MethodOfEllipsoids_%d',x)), 8:11, 'UniformOutput', false);
 
-% initialize parameters
-%[parameters] =  methods.all.initialization();
-%parameters = filefunc(parameters, methods);
-
- % Read Data
-%[Datas, parameters] = methods.all.readcancerData(parameters, methods);
-
-%Set Datas.istransformed to false 
-
-% CSF_files = cellfun(@(x) sprintf('SOMAscan7k_KNNimputed_%s',x),...
-%     {'AD_CN', 'AD_EMCI', 'AD_LMCI', 'CN_EMCI', 'CN_LMCI', 'EMCI_LMCI'},...
-%     'UniformOutput', false);
-
+DS = [methods.data.ADNI_files,...
+     {'newAD'},...
+     methods.data.CSF_files([1 3 5]),...
+     {'GCM'}];
 
 D = methods.all.ValuesTable('Balance', {true, false},...
-                            'Kernel', {false, true},...
+                            'Kernel', {true, false},...
                             'Eigenspace', {'smallest', 'largest'},...
-                            'ChooseTrunc', {false},...
-                            'Name', [methods.data.Alz_files{:}, {'GCM'}],...
-                            'PCA', {true},...
-                            'Algorithm', {0,2,1});...);
-                            ...'Name', {'newAD'});
-                            ...%'Ellipsoid', {@MethodOfEllipsoids_1, @MethodOfEllipsoids_26},...
-                            %);...
+                            'Name', DS,...
+                            'Algorithm', {2,0,1});
 
-for irow3 = height(D):-1:1
+%  myCluster = parcluster('Processes');
+% delete(myCluster.Jobs);
 
-delete(gcp('nocreate'))
-parameters = methods.all.initialization() ;
+D = D(ismember(D.Algorithm, [0, 1]), :);
+
+for irow3 = 1:height(D)
+
+delete(gcp('nocreate'));
+parameters =  methods.all.initialization();
 parameters.multilevel.splitTraining = D.Balance(irow3); %D{irow3,1};
 parameters.svm.kernal = D.Kernel(irow3); %D{irow3,2};
 parameters.multilevel.eigentag = D.Eigenspace{irow3}; % D{irow3,3};
 parameters.multilevel.svmonly = D.Algorithm(irow3); %D{irow3,4};
-parameters.multilevel.chooseTrunc = D.ChooseTrunc(irow3);
+%parameters.multilevel.nested = D.Nesting(irow3);
+%parameters.misc.PCA = D.PCA(irow3);
+%parameters.multilevel.chooseTrunc = D.ChooseTrunc(irow3);
 %methods.Multi2.ChooseTruncations = D.Ellipsoid{irow3};
 
 parameters.data.label = D.Name{irow3};
 parameters.data.name = [parameters.data.label '.txt'];
 parameters = methods.data.GetCommonParameters(parameters, methods);
-
-
+    
+    
 
  t0 = tic;
  for k = 1:parameters.data.nk
@@ -61,18 +50,14 @@ parameters = methods.data.GetCommonParameters(parameters, methods);
       parameters.data.currentiter=k; 
       [Datas, parameters] = methods.all.readcancerData(parameters, methods);     
       
-
-      %Initialize truncations if need be
-      % if parameters.multilevel.chooseTrunc
-      % parameters = methods.Multi2.ChooseTruncations(Datas, parameters, methods);
-      % return
-      % end
-
-      %Get Max Multilevel
+        %Initialize Max Multilevel if need be.
       parameters = methods.all.GetMaxMultiLevel(Datas, parameters, methods);
+    
 
       % Create results structure
       [results] = methods.all.iniresults(parameters);
+
+      
 
 
      
@@ -107,12 +92,14 @@ parameters = methods.data.GetCommonParameters(parameters, methods);
          case 0
          % Multilevel Method with SVM
          results = methods.Multi.CompMulti(methods, Datas, parameters, results);
-         parameters = ResidDimensionForMOLS(Datas, parameters, methods);
+         %parameters = ResidDimensionForMOLS(Datas, parameters, methods);
          case 2
          %Trajan's Multilevel Method with SVM
          results = methods.Multi2.CompMulti(Datas, parameters, methods, results);
          case 3
          results = methods.Multi2.FeatureSelect(Datas, parameters, methods, results);
+         case 4
+         results = methods.misc.Ablations(Datas, parameters, methods, results);
              
      end
 
@@ -123,16 +110,18 @@ parameters = methods.data.GetCommonParameters(parameters, methods);
       
       results.run_time = duration(0,0,t2 - t1, 'Format', 'hh:mm:ss');
       results.creation_time = datetime;
-     
-     
+      
 
      parameters = methods.all.filefunc(parameters, methods);
      Datas.rawdata.AData = []; Datas.rawdata.BData = [];
      save(fullfile(parameters.datafolder,parameters.dataname), 'parameters', 'results', 'Datas');
-   save('irow3.mat','irow3')
-   clear Datas parameters results
+     save('irow3.mat', 'irow3');
+     clear Datas parameters results
+     % myCluster = parcluster('Processes');
+     % delete(myCluster.Jobs);
 
- end
- end
+end
+
+end
  
 

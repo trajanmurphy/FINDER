@@ -17,10 +17,11 @@ DataAliases = ["GCM", "newAD", ...
                ];
 
 
-DSidx = [1:5, 11,9,8]
+DSidx = [1:5, 11,9,8];
 
 for iDS = DSidx
     DS = DataSets(iDS); DA = DataAliases(iDS);
+    fprintf('Processing \%s\n', DS);
 
     
     
@@ -28,6 +29,7 @@ for iDS = DSidx
     if isempty(X0); continue, end
     [f, ax] = CreateFigure(DA);
     X1 = CreateMatrices(X0);
+    PrintMode(X1);
     CreateMaps(X1, ax);
     FixFigure(ax);
     filePath = fullfile('..','results', 'Manual_Hyperparameter_Selection', 'Graphs', ...
@@ -58,7 +60,7 @@ svmonlys = [0 2];
 %% Extract relevant info from Table
 column = Table(:,DataAliases == DA,iAcc);
 FINDER1 = column(RowNames == "FINDER1");
-isRBF = column(RowNames == "Kernel1") == "RBF";
+isRBF = contains(FINDER1, "dagger"); %column(RowNames == "Kernel1") == "RBF";
 isBalanced = contains(FINDER1, "*");
 eigentag = char(eigentags(contains(FINDER1, "-L") + 1));
 svmonly = svmonlys(contains(FINDER1, "ACA") + 1);
@@ -116,7 +118,7 @@ annGap = 0.95; %Number between 0 and 1
 dFS = 19;
 hFS = 16;
 
-f = figure('Units', 'Normalized', 'Position', [0.05, 0.05, figWidth, figHeight]);
+f = figure('Units', 'Normalized', 'Position', [0.05, 0.95-figHeight, figWidth, figHeight]);
 LeftMargin = 0.1; RightMargin = LeftMargin + 0.02;
 WidthBetweenPlots = 0.05;
 numCol = 4;
@@ -243,6 +245,9 @@ for i = 1:length(X0.(Acc))
     % X1.(Acc)(i).MA = MARange;
     % X1.(Acc)(i).Mres = MresRange;
     X1.(Acc)(i).matrix = matrix;
+
+
+    
 
 end
 end
@@ -384,3 +389,33 @@ end
 end
 %==========================================================================
 %==========================================================================
+function PrintMode(X1)
+
+if false, return, end
+
+Accs = string(fields(X1(1)));
+
+for Acc = Accs'
+    % [Max0, ~] = arrayfun(@(x) max(x.matrix, [], 'all'), X1.(Acc) );
+    % [~, iMax0] = max(Max0);
+    % 
+    % fprintf('%s:\n', Acc);
+    % 
+    % matrix = X1.(Acc)(iMax0).matrix;
+    % MA = X1.(Acc)(iMax0).MA;
+    % Mres = X1.(Acc)(iMax0).Mres;
+    % 
+    % [Max1, iMax1] = max(matrix, [], 'all');
+    % [iMres, iMA] = ind2sub(size(matrix), iMax1);
+    % modeMA = MA(iMA);
+    % modeMres = Mres(iMres);
+    % 
+    % fprintf('\t Mode MA: %d\n', modeMA);
+    % fprintf('\t Mode Mres: %d\n', modeMres);
+    % fprintf('\t Frequency: %d %% \n', round(100*Max1));
+    [Max0, iMax0] = arrayfun(@(x) max(x.matrix, [], 'all'), X1.(Acc) );
+    [iMres, iMA] = ind2sub(@(x,y) ind2sub(size(y.(Acc).matrix), xsize(imatrix), iMax1);
+
+end
+
+end

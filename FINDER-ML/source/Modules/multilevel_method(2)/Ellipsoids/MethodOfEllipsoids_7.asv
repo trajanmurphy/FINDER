@@ -29,6 +29,8 @@ BestAccuracy = 0;
 %fprintf('Baseline Accuracy: %0.3f \n', BaselineAccuracy);
 
 
+
+Hyperparameters = nan(length(MA), 2);
 for m = MA
    
 %% Get features belonging in residual eigenspace

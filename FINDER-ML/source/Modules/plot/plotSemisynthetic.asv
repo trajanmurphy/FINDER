@@ -1,14 +1,31 @@
-function plotAUCs2
+function plotSemisynthetic
 close all
 
 rF = 'results';
 lFS = 12;
 TrimB = false;
+
+
+ClassSize = [600, 200, 10000];
+ ClassSize = sprintf('%d_TrainingA_%d_TrainingB_%d_Testing', ...
+        ClassSize(1), ClassSize(2), ClassSize(3));
+
+ 
 nesting = 'Inner-Nesting';
-DSidx = [11]; 
+
+transforms = arrayfun(@(x) replace( ...
+    sprintf("Noise_%0.g", x),...
+    '.', '_'), ...
+    5*10.^[-5,-4,-3]);
+
+transforms = ["id", transforms];
+
+% transforms = arrayfun(@(x) sprintf("sin(%dx)",x) , [1,3,7] );
+
+DSidx = [1:5, 11, 9, 8]; 
 
 resultFolder = 'Manual_Hyperparameter_Selection';
-Balances = ["Balanced", "Unbalanced"];
+Balances = ["Balanced"];
 Accs = ["AUC", "accuracy"];
 Algos = ["MLS", "ACA-S", "ACA-L", "Benchmark"];
 
@@ -35,13 +52,16 @@ Best = MakeBestStruct(DataSets);
 Best = arrayfun(@(b,d) setfield(b, 'DS', d), Best, DataSets);
 Best = arrayfun(@(b) setfield(b, 'nesting', nesting), Best);
 
+for iTr = 1:length(transforms)
+    transform = transforms(iTr);
+
 for iDS = 1:length(DataSets)
     DS = DataSets(iDS);
     DA = DataAliases(iDS);
     Best(iDS).DS = DS;
    
     
-    f = figure('units','normalized','outerposition',[0.05 0.1 0.8 0.6]);
+    f = figure('units','normalized','outerposition',[0.05 0.1 0.3 0.6]);
 
     
 
@@ -54,11 +74,11 @@ for iacc = 1:length(Accs)
 plotData = cell(1,4);
 for iBalance = 1:length(Balances)
         iplot = iplot + 1;
-        ax = subplot(2,2,iplot); hold on,
+        ax = subplot(2,1,iplot); hold on,
         
         %if ismember(iplot, [2 4]), ax.Position(1) = 0.53; end
         Balance = Balances(iBalance);
-        X2 = GetFiles(DS, Balance, rF, nesting);
+        X2 = GetFiles(DS, Balance, rF, transform, ClassSize);
         %if skipDS, continue, end
         assert(~isempty(X2), 'X2 is empty')
 
@@ -75,7 +95,7 @@ for iBalance = 1:length(Balances)
         %% Set up axes
        
         PlotOnAxes(DA, Balance, x1, y1, iAlgo, ax, iplot, Acc);
-        Best(iDS) = UpdateBest(Best(iDS), x1, y1, l, Acc, Balance);
+        %Best(iDS) = UpdateBest(Best(iDS), x1, y1, l, Acc, Balance);
                                
       
         end
@@ -94,23 +114,25 @@ end
 FixAxes(f);
 
 
-plotPath = fullfile('..',rF,resultFolder,'Kfold','Graphs');
+plotPath = fullfile('..',rF,resultFolder,'Synthetic','Graphs');
 if ~isfolder(plotPath), mkdir(plotPath), end
-exportgraphics(f, fullfile(plotPath, sprintf('%s_%s.pdf', DS, nesting)));
+exportgraphics(f, fullfile(plotPath, ...
+    sprintf('%s_%s_Synthetic.pdf', DS, transform ...
+    )));
 close(f)
 
-
+end
 end
 
 
-for iDS = 1:length(DataSets)
-    DS = DataSets(iDS); DA = DataAliases(iDS);
-    fileID = GetFileID(DA, fileIDs);
-    WriteFigureLatex(fileID, DS, DA, Best(iDS));
-end
-fclose all;
-
-save(fullfile(plotPath, 'BestStruct.mat'), 'Best');
+% for iDS = 1:length(DataSets)
+%     DS = DataSets(iDS); DA = DataAliases(iDS);
+%     fileID = GetFileID(DA, fileIDs);
+%     WriteFigureLatex(fileID, DS, DA, Best(iDS));
+% end
+% fclose all;
+% 
+% save(fullfile(plotPath, 'BestStruct.mat'), 'Best');
 
 
 
@@ -223,32 +245,41 @@ end
 
 %==========================================================================
 
-function X= GetFiles(DS, Balance, rF, nesting)
+function X= GetFiles(DS, Balance, rF, transform, ClassSize)
 
     %rF = 'results2';
     MOE = 'Manual_Hyperparameter_Selection';
     %nesting = 'Unnested';
-    CrossVal = 'Kfold';
-
-    folderpath = fullfile('..', rF, MOE, CrossVal, DS);
-    X = dir(folderpath); X(matches({X.name}, [".", ".."])) = [];
+    CrossVal = 'Synthetic';
     
+   
 
-    Leave_K_out = {X.name};
-    K = cellfun(@(x) extractBetween(x, 'Leave_', '_out'), Leave_K_out);
-    Ks = cellfun(@str2num, K); %Ks = Ks(Ks > 1);
-    [K, iK] = min(Ks); %min(cellfun(@str2num, K));
-    Leave_K_out = sprintf('Leave_%d_out', K);%Leave_K_out{iK};
-    folderpath = fullfile(folderpath, Leave_K_out, '**');
-    X = dir(folderpath); 
-    X(matches({X.name}, [".", ".."])) = []; 
-    X(~contains({X.name}, '.mat')) = [];
+    % if isnumeric(transform)
+    %     transform = sprintf('sin(%dx)', transform);
+    % end
+
+
+    folderpath = fullfile('..', rF, MOE, CrossVal, DS, ClassSize, transform, '**', '*.mat');
+    X = dir(folderpath); X(matches({X.name}, [".", ".."])) = [];
+    % X(~contains({X.name}, transform)) = [];
+    % X = dir(fullfile(X.folder, X.name, '**', '*.mat'));
+    % 
+
+    % Leave_K_out = {X.name};
+    % K = cellfun(@(x) extractBetween(x, 'Leave_', '_out'), Leave_K_out);
+    % Ks = cellfun(@str2num, K); %Ks = Ks(Ks > 1);
+    % [K, iK] = min(Ks); %min(cellfun(@str2num, K));
+    % Leave_K_out = sprintf('Leave_%d_out', K);%Leave_K_out{iK};
+    % folderpath = fullfile(folderpath, Leave_K_out, '**');
+    % X = dir(folderpath); 
+    % X(matches({X.name}, [".", ".."])) = []; 
+    % X(~contains({X.name}, '.mat')) = [];
     %X2 = X(contains({X.folder}, Balance) | contains({X.name}, 'Benchmark'));
 
-    XBench = X(contains({X.name}, 'Benchmark'));
-    XBal = X(contains({X.folder}, Balance));
-    XNest = XBal(contains({XBal.name}, nesting));
-    X = [XBench; XNest];
+    %XBench = X(contains({X.name}, 'Benchmark'));
+    %XBal = X(contains({X.folder}, Balance));
+    %XTrans = X(contains({X.folder}, transform));
+    %X = [XBench; XTrans];
 
 end
 
@@ -263,10 +294,12 @@ TrimB = false;
             
             if TrimB, [X4.parameters, X4.results] = TrimBenchmark(X4.parameters, X4.results); end
 
-            switch X4.parameters.svm.kernal
-                case true, l = "-RBF";
-                case false, l = "-Lin";
-            end
+            % switch X4.parameters.svm.kernal
+            %     case true, l = "-RBF";
+            %     case false, l = "-Lin";
+            % end
+
+            l = "";
                   
             if ismember(Algo, ["MLS", "ACA-S", "ACA-L"])
                     x1 = X4.parameters.multilevel.Mres;
@@ -290,7 +323,8 @@ end
 function PlotOnAxes(DA, Balance, x1, y1, ...
                     iAlgo, ax, iplot,Acc)
 
-YTicks = 0.5:0.1:1;
+minmax = @(x) [min(x) max(x)];
+YTicks = 0.55:0.05:1;
 
 MarkerSize = 8;
 tFS = 15;
@@ -298,47 +332,54 @@ yFS = 15;
 xFS = 15;
 
 YTickLabels = num2cell(YTicks); YTickLabels(1:2:end) = {''};
-axNames = {'YLim', 'YGrid', 'YTickMode', 'ytick','YTickLabels', 'FontSize'};
-axValues = {[0.5, 1], 'on', 'manual', YTicks, YTickLabels, yFS};
+%axNames = {'YLim', 'YGrid', 'YTickMode', 'ytick','YTickLabels', 'FontSize'};
+%axValues = {minmax(YTicks), 'on', 'manual', YTicks, YTickLabels, yFS};
+axNames = {'YGrid', 'FontSize'};
+axValues = {'on', yFS};
 LineArgs = {'LineWidth', 3, 'Marker', 's', 'MarkerSize', MarkerSize, 'MarkerFaceColor', 'auto'};
 %AxlabelArgs = {'Interpreter', 'latex', 'FontSize', FontSize};
 
-minmax = @(x) [min(x) max(x)];
+
 capitalize = @(str) upper(extractBefore(str,2)) + extractAfter(str,1);
 
 LineColors = [0.12, 0.21, 1; %MLS
             1, 0.04, 0.12; %ACA-S
             0.25, 0.25, 0.25; %ACA-L
             0.85, 0.67, 0.2]; %Benchmark;
-if iplot <= 2
+
         %title({DA, Balance}, 'Interpreter', 'latex', 'FontSize', tFS); 
-        title(Balance, 'Interpreter', 'latex', 'FontSize', tFS); 
-        end
+        %title(Balance, 'Interpreter', 'latex', 'FontSize', tFS); 
+      
          %Set up y-axes
-        if ismember(iplot, [1 3])
         ylabel(capitalize(Acc), 'FontSize', yFS, 'Interpreter', 'latex');
-        end
+        
         cellfun(@(x,y) set(ax,x,y), axNames, axValues);
         
         %Set up data & x-axes
         LineColor = LineColors(iAlgo,:);
         plot(ax,x1,y1,'Color', LineColor, LineArgs{:});
         
-        if ismember(iplot, [1 2])
+        if iplot == 1
             ax.XTickLabel = {};
         else 
             xlabel('$M_{res}$', 'Interpreter', 'latex', 'FontSize', xFS);
             ax.Position(2) = 0.18;
-            if length(ax.XTickLabel) >= 7
-                ax.XTickLabel(1:2:end) = {''};
+            
+            if max(ax.XTick) > 1000
+                Exponent = floor(log10(max(ax.XTick)));
+                ax.XAxis.Exponent = Exponent;
             end
+            %ax.XAxis.TickLabelFormat = '%g';
+            % if length(ax.XTickLabel) >= 7
+            %     ax.XTickLabel(1:2:end) = {''};
+            % end
         end
         
         if iplot == 1
         annLeft = -0.05;
         annWidth = 1;
         annHeight = 0.05;
-        annBottom = 0.86-annHeight;
+        annBottom = 0.9-annHeight;
         annPos = [annLeft, annBottom, annWidth, annHeight];
         annotation('textbox',...
             'String', DA,...
@@ -357,26 +398,86 @@ end
 function FixAxes(f)
 minmax = @(x) [min(x) max(x)];
 ax = findall(f,'type','axes');
+Po
 minHeight = 0.8*min(arrayfun(@(x) x.Position(4), ax));
 minWidth = min(arrayfun(@(x) x.Position(3), ax));
-for i = 1:4 
+for i = 1:length(ax)
     ichild = contains({ax(i).Children.DisplayName}, 'MLS');
     xl = minmax(ax(i).Children(ichild).XData);
     ax(i).XLim = xl;
-    p = ax(i).Position;
-    p([3 4]) = [minWidth minHeight]; 
-    p(2) = p(2) - ceil(i/2)*0.06;
-    if ismember(i, [1 2])
-        %p(2) = p(2) + 0.05;
-    end
-    if ismember(i, [1 3])
-        p(1) = p(1) - 0.05;
-    end
-    ax(i).Position = p;
+     p = ax(i).Position;
+     p([3 4]) = [minWidth minHeight]; 
+     p(2) = p(2) - ceil(i/2)*0.06;
+     p(1) = 0.2;
+     ax(i).Position = p;
+     GetWindow(ax(i));
+     
 
     %ax(i).XScale = 'log';
 end
 end
+%==========================================================================
+function GetWindow(ax)
+Children = ax.Children;
+isFINDER = contains({Children.DisplayName}, {'ACA', 'MLS'});
+Children0 = Children(isFINDER);
+Children1 = Children(~isFINDER);
+YData = [Children.YData];
+XData = [Children0.XData];
+Baseline = unique(Children1.YData);
+windowSize = max(YData) - min(YData);
+windowSize = max(windowSize, 0.05);
+windowSize = min(windowSize, 0.4);
+windowSize = 0.05 * ceil(windowSize / 0.05);
+
+window = [0, windowSize];
+BestPoints = 0;
+idealWindow = window;
+keepShifting = true;
+for i = 0:0.05:1-windowSize
+    currentWindow = window + i;
+    isInWindow = @(x) x >= currentWindow(1) & x <= currentWindow(2);
+    if ~isInWindow(Baseline), continue, end
+
+    
+    indow = sum(isInWindow(YData));
+    if indow >= BestPoints
+        BestPoints = indow;
+        idealWindow = currentWindow;
+    end
+end
+window = idealWindow;
+
+if windowSize <= 0.05
+    spacing = 0.01;
+    fspec = "%0.3f";
+elseif windowSize <= 0.15
+    spacing = 0.025;
+    fspec = "%0.3f";
+elseif windowSize > 0.15
+    spacing = 0.05;
+    fspec = "%0.2f";
+end
+
+
+YTicks =  window(1):spacing:window(2);
+YTickLabels = arrayfun(@(x) sprintf("%0.2f",x), YTicks);
+Y0 = arrayfun(@(x) sprintf(fspec,x), YTicks);
+YTickLabels(endsWith(Y0, "5")) = "";
+
+ax.YLim = window;
+ax.YTick = YTicks;
+ax.YTickLabels = YTickLabels;
+ax.XLim = [min(XData), max(XData)];
+ax.YAxis.FontSize = 11;
+ax.YLabel.FontSize = 16;
+
+
+
+
+
+end
+
 %==========================================================================
 function [parameters, results] = TrimBenchmark(parameters, results)
 

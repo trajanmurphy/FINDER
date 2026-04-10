@@ -15,31 +15,34 @@ DS = [methods.data.ADNI_files,...
 D = methods.all.ValuesTable('Balance', {true, false},...
                             'Kernel', {true, false},...
                             'Eigenspace', {'smallest', 'largest'},...
-                            'ChooseTrunc', {true},...
-                            'Name', DS,...
-                            'Ellipsoid', MOEs,...
-                            'PCA', {true},...
-                            'Algorithm', {2,0});
+                            'Name', methods.data.CSF_files([1 3 5]),...
+                            'Algorithm', {2});
 
-D = D(100:end,:);
-D = D(~D.Balance & ~D.Kernel,:);
+%  myCluster = parcluster('Processes');
+% delete(myCluster.Jobs);
 
-for irow4 = height(D):-1:height(D)/2
- t0 = tic;
 
-delete(gcp('nocreate'))
-parameters = methods.all.initialization() ;
+
+for irow4 = 18:-1:10
+
+delete(gcp('nocreate'));
+parameters =  methods.all.initialization();
 parameters.multilevel.splitTraining = D.Balance(irow4); %D{irow4,1};
 parameters.svm.kernal = D.Kernel(irow4); %D{irow4,2};
 parameters.multilevel.eigentag = D.Eigenspace{irow4}; % D{irow4,3};
 parameters.multilevel.svmonly = D.Algorithm(irow4); %D{irow4,4};
-parameters.multilevel.chooseTrunc = D.ChooseTrunc(irow4);
-methods.Multi2.ChooseTruncations = D.Ellipsoid{irow4};
+%parameters.multilevel.nested = D.Nesting(irow4);
+%parameters.misc.PCA = D.PCA(irow4);
+%parameters.multilevel.chooseTrunc = D.ChooseTrunc(irow4);
+%methods.Multi2.ChooseTruncations = D.Ellipsoid{irow4};
 
 parameters.data.label = D.Name{irow4};
 parameters.data.name = [parameters.data.label '.txt'];
 parameters = methods.data.GetCommonParameters(parameters, methods);
+    
+    
 
+ t0 = tic;
  for k = 1:parameters.data.nk
      t1 = toc(t0);
 
@@ -47,18 +50,14 @@ parameters = methods.data.GetCommonParameters(parameters, methods);
       parameters.data.currentiter=k; 
       [Datas, parameters] = methods.all.readcancerData(parameters, methods);     
       
-
-      %Initialize truncations if need be
-      % if parameters.multilevel.chooseTrunc
-      % parameters = methods.Multi2.ChooseTruncations(Datas, parameters, methods);
-      % return
-      % end
-      
-
+        %Initialize Max Multilevel if need be.
       parameters = methods.all.GetMaxMultiLevel(Datas, parameters, methods);
+    
 
       % Create results structure
       [results] = methods.all.iniresults(parameters);
+
+      
 
 
      
@@ -93,12 +92,14 @@ parameters = methods.data.GetCommonParameters(parameters, methods);
          case 0
          % Multilevel Method with SVM
          results = methods.Multi.CompMulti(methods, Datas, parameters, results);
-         parameters = ResidDimensionForMOLS(Datas, parameters, methods);
+         %parameters = ResidDimensionForMOLS(Datas, parameters, methods);
          case 2
          %Trajan's Multilevel Method with SVM
          results = methods.Multi2.CompMulti(Datas, parameters, methods, results);
          case 3
          results = methods.Multi2.FeatureSelect(Datas, parameters, methods, results);
+         case 4
+         results = methods.misc.Ablations(Datas, parameters, methods, results);
              
      end
 
@@ -109,15 +110,18 @@ parameters = methods.data.GetCommonParameters(parameters, methods);
       
       results.run_time = duration(0,0,t2 - t1, 'Format', 'hh:mm:ss');
       results.creation_time = datetime;
-     
+      
 
      parameters = methods.all.filefunc(parameters, methods);
      Datas.rawdata.AData = []; Datas.rawdata.BData = [];
      save(fullfile(parameters.datafolder,parameters.dataname), 'parameters', 'results', 'Datas');
-     save('irow4.mat','irow4');
+     save('irow4.mat', 'irow4');
      clear Datas parameters results
+     % myCluster = parcluster('Processes');
+     % delete(myCluster.Jobs);
 
- end
+end
+
 end
  
 

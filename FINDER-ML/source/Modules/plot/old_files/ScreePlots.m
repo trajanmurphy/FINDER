@@ -1,44 +1,55 @@
-function ScreePlots(Datas, parameters, methods)
+function ScreePlots
 
-%[Datas, parameters] = PrepData(Datas, parameters);
-%Datas = UpdateCovariance(Datas, parameters);
-%NA = size(Datas.rawdata.AData, 1);
-%NB = size(Datas.rawdata.BData, 1);
+close all
 
-Datas.A.Training = Datas.rawdata.AData;
-Datas.B.Training = Datas.rawdata.BData;
-parameters.transform.RankTol = eps;
+%==========================================================================
+colors = [hex2rgb('#0172aa');  %blue
+          hex2rgb('#eb8513')]; %orange
+figPos = [0.1, 0.1, 0.3, 0.3];
+LW = 3;
+mk = 'o';
+NTerms = 15;
 
-eigendata = ConstructEigendata(Datas, parameters, 'Training');
-[CR, BestCR, MA, MB] = ComputeSeparationCriterion(eigendata);
+tFS = 17;
+aFS = 15;
+lFS = 13;
+%==========================================================================
+
+methods = DefineMethods;
+parameters = InitializeParameters3();
+parameters = methods.data.GetCommonParameters(parameters, methods);
+[Datas, parameters] = methods.all.readcancerData(parameters, methods);   
 
 
+%==========================================================================
+figure('Units', 'normalized', 'Position', figPos);
+ax = axes; hold on
 
-% AData = Datas.rawdata.AData - mean(Datas.rawdata.AData, 2);
-% BData = Datas.rawdata.BData - mean(Datas.rawdata.BData, 2);
-% 
-% [~,SA,VA] = svd(AData);
-% [~,SB, VB] = svd(BData);
+for C = ["A", "B"]
+    X = Datas.rawdata.(C + "Data");
+    N = size(X,2); m = mean(X,2); Z = (N-1)^(-0.5)*(X - m);
+    [~,S,~] = svd(Z, 'econ', 'vector');
+    EV = 1 - cumsum(S.^2) / sum(S.^2); EV = EV(1:NTerms);
+    plot(EV, ...
+        'LineWidth', LW, ...
+        'Color', colors(["A", "B"] == C, :), ...
+        'Marker', mk);
+end
 
+xlabel('Truncation', 'Interpreter', 'latex');
+ylabel('Tail Sum', 'Interpreter', 'latex');
+title('Normalized Eigenvalue Tail Sum', 'Interpreter', 'latex', 'FontSize', tFS);
+for a = ["X", "Y"]
+    ax.(a + "Axis").FontSize = aFS-2;
+    ax.(a + "Label").FontSize = aFS; 
+end
+legend(["A", "B"], 'Interpreter', 'latex', 'FontSize', lFS);
+ax.YGrid = 'on';
+ax.YScale = 'log';
 
-%% Scree Plot
-figure
+folder = fullfile('..', 'results', 'Manual_Hyperparameter_Selection', 'Graphs');
+name = 'Eigenvalue_Tail_Sum.pdf';
 
-subplot(1,2,1)
-hold on 
-stem(eigendata.EvalA), stem(eigendata.EvalB)
-legend({'A','B'}, 'Location', 'northeast')
-title('Scree Plot')
-
-%% Separation Criteria
-subplot(1,2,2)
-imagesc(CR)
-colormap jet, colorbar
-set(gca, 'clim', [min(CR(:)) max(CR(:))])
-title(...
-    sprintf('Best SC = %0.3f, Best M_A = %d, Best M_B = %d', ...
-    BestCR, MA, MB),...
-    'Interpreter', 'tex')
-
+exportgraphics(gcf, fullfile(folder, name));
 
 end

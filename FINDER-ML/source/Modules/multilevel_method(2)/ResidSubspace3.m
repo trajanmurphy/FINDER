@@ -1,4 +1,4 @@
-function Datas = ResidSubspace3(Datas, parameters, methods)
+function [Datas, parameters] = ResidSubspace3(Datas, parameters, methods)
 
 %% Express Data in Class A eigenbasis
 Datas = methods.Multi2.EigenbasisA(Datas, parameters, methods);

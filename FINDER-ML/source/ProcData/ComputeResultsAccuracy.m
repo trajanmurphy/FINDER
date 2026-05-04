@@ -24,6 +24,8 @@ for iLevel = 1:nLevels %iLevel = N
    FP = sum(actual == 0 & predicted == 1);
 
     results.accuracy(iLevel) = (TP + TN) / (TP+FN+FP+TN);
+    results.precisionA(iLevel) = TP / (TP + FN);
+    results.precisionB(iLevel) = TN / (TN + FP);
    %results.accuracy(iLevel) = sum(predicted == 1 & actual == 1) / sum(actual == 1);
 end
 

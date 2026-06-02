@@ -1,2 +1,0 @@
-function PZHessian = (X, lambda, Datas, parameters, methods)
-end

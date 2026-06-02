@@ -1,11 +1,11 @@
 function plotAUCs2
 close all
 
-rF = 'results';
+rF = 'results2';
 lFS = 12;
 TrimB = false;
 nesting = 'Inner-Nesting';
-DSidx = [11]; 
+DSidx = [1:5, 11, 9, 8]; 
 
 resultFolder = 'Manual_Hyperparameter_Selection';
 Balances = ["Balanced", "Unbalanced"];
@@ -31,7 +31,7 @@ DataSets = DataSets(DSidx); DataAliases = DataAliases(DSidx);
 
 
 fileIDs = OpenFileIDs(rF, nesting);
-Best = MakeBestStruct(DataSets);
+Best = MakeBestStruct(DataSets, Accs);
 Best = arrayfun(@(b,d) setfield(b, 'DS', d), Best, DataSets);
 Best = arrayfun(@(b) setfield(b, 'nesting', nesting), Best);
 
@@ -96,7 +96,7 @@ FixAxes(f);
 
 plotPath = fullfile('..',rF,resultFolder,'Kfold','Graphs');
 if ~isfolder(plotPath), mkdir(plotPath), end
-exportgraphics(f, fullfile(plotPath, sprintf('%s_%s.pdf', DS, nesting)));
+%exportgraphics(f, fullfile(plotPath, sprintf('%s_%s.pdf', DS, nesting)));
 close(f)
 
 
@@ -110,7 +110,7 @@ for iDS = 1:length(DataSets)
 end
 fclose all;
 
-save(fullfile(plotPath, 'BestStruct.mat'), 'Best');
+%save(fullfile(plotPath, 'BestStruct.mat'), 'Best');
 
 
 
@@ -119,9 +119,9 @@ end
 
 %==========================================================================
 %==========================================================================
-function Best = MakeBestStruct(DS)
+function Best = MakeBestStruct(DS, Accs)
 
-for Acc = ["AUC", "accuracy", "F1score"];
+for Acc = Accs;
 %Best.(Acc).DS = [];
 Best.(Acc).Performance = 0;
 Best.(Acc).Algo = [];

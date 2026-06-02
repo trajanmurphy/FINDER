@@ -1,0 +1,61 @@
+function printSemiSyntheticDiagrams
+
+%% Get Folder Ingredients
+folder = fullfile("..", "results", "Manual_Hyperparameter_Selection", "Synthetic", "Graphs", "tex_files");
+if ~isfolder(folder), mkdir(folder); end
+%name = "Synthetic_Diagrams.tex";
+
+%fID = fopen(fullfile(folder, name), "w+");
+
+%% Define iterates
+methods = DefineMethods;
+DS = string(methods.data.all_files);
+DS = string(DS([1:6, 8, 10]));
+
+transforms = arrayfun(@(x) replace(sprintf("Noise_%0.g", x),'.', '_'),5*10.^[-5,-4,-3]);
+transforms = ["id", transforms];
+transforms2 = ["0", "5e-0" + ["5", "4", "3"]];
+
+for ids = DS
+    name = ids + "_corruptions.tex";
+    path = fullfile(folder, name);
+    fID = fopen(path, "w+");
+
+    %% Print Header
+    fprintf(fID, ['\\begin{figure}[h]\n',...
+    '\\centering\n',...
+    '\\caption{AUC and accuracy for each FINDER method + highest ',...
+    'performing benchmark for quasi-bootstrapped %s data set.} \n'],...
+    ids);
+
+    %% Open fbox
+    fprintf(fID, ['\\setlength{\\fboxrule}{0.5pt}',...
+		'\\setlength{\\fboxsep}{2pt}',...
+		'\\fbox{\n\n']);
+
+for it = 1:length(transforms)
+
+    %% Print subfigure 
+    fprintf(fID, ['\\begin{subfigure}[b]{0.24\\textwidth}\n',...
+        '\\centering\n',...
+        '\\includegraphics[height=0.17\\textheight]\n',...
+        '{Visualizing_Corruption/%s_%s_Synthetic.pdf}\n',...
+        '\\caption*{\\texttt{sc} = %s}\n',...
+        '\\end{subfigure}\n',...
+        ], ids, transforms(it), transforms2(it));
+end
+
+    %% Close fbox
+    fprintf(fID, '}\n\n');
+
+    %% Figure Footer
+    fprintf(fID, ['\\label{%s_QB}\n',...
+        '\\end{figure}'], ids);
+
+    fclose(fID);
+
+end
+
+
+
+end

@@ -26,13 +26,13 @@ end
 %% Add Gaussian Noise
 if ~isempty(sigma)
     if isnumeric(sigma)
-    for CData = ["AData", "BData"]
-        D = Datas.rawdata.(CData);
+        D = Datas.rawdata.AData;
         D = (D - mean(D,2)) * (size(D,2) - 1)^(-0.5);
-         [~,scaleFactor,~] =  svds(D,1,'largest'); 
-         scaleFactor = sigma*scaleFactor;
-        noise = scaleFactor * randn(size(D));
-        Datas.rawdata.(CData) = D + noise;
+        [~,scaleFactor,~] =  svds(D,1,'largest');
+    for CData = ["AData", "BData"]       
+        scaleFactor = sigma*scaleFactor;
+        noise = scaleFactor * randn(size(Datas.rawdata.(CData)));
+        Datas.rawdata.(CData) = Datas.rawdata.(CData) + noise;
     end
     end
 

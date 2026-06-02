@@ -229,7 +229,7 @@ AxlabelArgs = {'Interpreter', 'latex', 'FontSize'};
 
 
 axes(ax(1))
-title('FINDER vs. Benchmarks', AxlabelArgs{:}, tFS) 
+title('Residual Subspace Methods vs. Benchmarks', AxlabelArgs{:}, tFS) 
 legstr  = ["MLS-Lin", "MLS-RBF", "ACA-L-Lin", "ACA-L-RBF", "ACA-S-Lin", "ACA-S-RBF",...
            "SVM-Lin-PCA", "SVM-RBF-PCA", "SVM-Lin", "SVM-RBF",...
            "LogitBoost", "RUSBoost", "BAGging"];

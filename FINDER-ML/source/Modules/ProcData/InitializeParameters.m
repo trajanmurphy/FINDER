@@ -16,7 +16,7 @@ parameters.data.label = 'Plasma_M12_CNLMCI';
 
 parameters.data.name = [parameters.data.label, '.txt'];
 
-parameters.data.validationType = 'Kfold';  %One of 'Synthetic', 'Kfold', or 'Cross'
+parameters.data.validationType = 'Synthetic';  %One of 'Synthetic', 'Kfold', or 'Cross'
 parameters.data.numofgene = []; % Set to empty array [] to initialize as latent data dimension
 parameters.data.normalize = 1; % if 1 then Data standarized
 parameters.data.randomize = true; % true = randomly permute data upon loading
@@ -41,11 +41,11 @@ parameters.synthetic.NTest = 10000;
 
 %% MultiLevel parameters
 parameters.snapshots.k1 = 8;% KL Truncation for Class A
-parameters.multilevel.svmonly = 2; % 0 = MLS, 1 = Benchmark, 2 = ACA
+parameters.multilevel.svmonly = 1; % 0 = MLS, 1 = Benchmark, 2 = ACA
 parameters.multilevel.splitTraining = true; % true = Balanced, false = Unbalanced
 parameters.multilevel.eigentag = 'largest'; %'largest' = ACA-L, 'smallest' = ACA-S
-parameters.multilevel.Mres_manual = 140;%200:200:2000;
-parameters.multilevel.Mres_auto = [];
+parameters.multilevel.Mres_manual = [];%200:200:2000;
+parameters.multilevel.Mres_auto = 'MLS';
 %parameters.multilevel.Mres = unique([parameters.multilevel.Mres_manual(:),...
  %                             parameters.multilevel.Mres_auto(:)]);
 

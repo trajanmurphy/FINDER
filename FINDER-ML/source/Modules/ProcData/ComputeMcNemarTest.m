@@ -12,21 +12,29 @@ Datasets = [...
 myload = @(x) load(fullfile(x.folder, x.name));
 thisdir = pwd;
 methods = DefineMethods;
-rF = ["results2"];
-CV = ["Kfold"];
-MOEs = arrayfun(@(x) sprintf("MethodOfEllipsoids_%d",x), 8:11);
+rF = ["results"];
+CV = ["Synthetic"];
 Balances = ["Balanced", "Unbalanced"];
 Accs = ["accuracy"];
 
+transforms = arrayfun(@(x) replace( ...
+    sprintf("Noise_%0.g", x),...
+    '.', '_'), ...
+    5*10.^[-2,-1]);
+transforms = ["id", transforms];
 
 
 
 for DS = Datasets(:)'
-  fprintf('Processing %s \n', DS);
-  X = dir(fullfile('..', 'results2', 'Manual_Hyperparameter_Selection', ...
-      CV, DS, '**', '*.mat'));
-  isBench = contains({X.name}, 'Benchmark');
+    fprintf('Processing %s \n', DS);
+for Noise = transforms
+  
+  X = dir(fullfile('..', rF, 'Manual_Hyperparameter_Selection', ...
+      CV, DS, '600_TrainingA_200_TrainingB_10000_Testing', ...
+      Noise, '**', '*.mat'));
+  isBench = contains({X.name}, 'Benchmark') & contains({X.folder}, 'Unbalanced');
   XB = X(isBench);
+
   YB = load(fullfile(XB.folder, XB.name));
 
 for Acc = Accs
@@ -40,15 +48,7 @@ BenchmarkPredicted = BenchmarkPredicted(~isnan(BenchmarkPredicted));
 BenchmarkCorrect = BenchmarkActual == BenchmarkPredicted;
 BenchmarkIncorrect = ~BenchmarkCorrect;
 
-for MOE = MOEs
-  %Get Balanced result
-  homePath = fullfile('..', rF, MOE, CV, DS, 'Leave_1_out', '**', '*.mat');
-  XF = dir(homePath);
-  
-  
-
-
-  %XF = X(~isBench);
+XF = X(~isBench);
 
 for i = 1:length(XF)
     
@@ -69,37 +69,25 @@ for i = 1:length(XF)
   FinderCorrect = FinderActual == FinderPredicted;
   FinderIncorrect = ~FinderCorrect;
 
-% [C, order] = confusionmat(BenchmarkCorrect, FinderCorrect, 'Order', [1 0]); 
-% order = string(num2str(order));
-% C = array2table(C, RowNames = ["True0" "True1"], VariableNames = ["Predicted0" "Predicted1"]);
-%disp(C)
 
 
   B = sum(BenchmarkCorrect & FinderIncorrect);
   C = sum(BenchmarkIncorrect & FinderCorrect);
   
-  %switch YF.results.(Acc)(iL) > BestBaseline
-      %case true 
-         testStatistic = (abs(B - C) - 1)^2 / (B + C);
-     % case false 
-         % testStatistic = 0;
-  %end
+  testStatistic = (abs(B - C) - 1)^2 / (B + C);
   pvaluesMcNemar(iL) = chi2cdf(testStatistic,1,'upper');
   pvaluesWilcoxon(iL) = signrank(double(FinderCorrect), ...
       double(BenchmarkCorrect), 'tail', 'right');
  
-    end
+  end
 
    fieldnameMcNemar = sprintf('McNemar_pvalue_%s', Acc);
    fieldnameWilcoxon = sprintf('Wilcoxon_pvalue_%s', Acc);
   YF.results.(fieldnameMcNemar) = pvaluesMcNemar;
   YF.results.(fieldnameWilcoxon) = pvaluesWilcoxon;
 
-  % fprintf('\nMcNemar p-values: \n');
-  % fprintf('%0.3f, ', pvaluesMcNemar);
-  % fprintf('\nWilcoxon p-values: \n', pvaluesWilcoxon);
-  % fprintf('%0.3f, ', pvaluesWilcoxon);
   save(fileName, '-struct', 'YF');
+
 
 end
 

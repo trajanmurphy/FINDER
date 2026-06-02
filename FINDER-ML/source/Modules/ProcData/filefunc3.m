@@ -1,4 +1,4 @@
-function parameters = filefunc2(parameters, methods)
+function parameters = filefunc3(parameters, methods)
 
 
 %% Remove 'origA', 'origB', 'Training', 'Testing' fields from parameters (they're huge!)
@@ -31,8 +31,12 @@ switch parameters.data.validationType
                 error('parameters.synthetic.functionTransform must be id or a real number');
             end
         elseif ~isempty(parameters.synthetic.GaussianNoiseFactor)
+            if strcmp(parameters.synthetic.GaussianNoiseFactor, 'id')
+                str = 'id';
+            elseif isnumeric(parameters.synthetic.GaussianNoiseFactor)
             str = sprintf('Noise_%0.g', parameters.synthetic.GaussianNoiseFactor);
             str = replace(str, '.', '_');
+            end
         end
 
         split_tag = [split_tag, filesep, str];

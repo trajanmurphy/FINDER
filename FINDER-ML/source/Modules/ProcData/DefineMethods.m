@@ -87,7 +87,7 @@ methods.Multi.CompMulti = @CompMulti;
 %methods.Multi.procdata = @MProcData; 
 methods.Multi.snapshots = @snapshots1;   
 methods.Multi.snapshotssub = @snapshotssub; %@snapshotssub;
-methods.Multi.generateData= @kernelGenData; %@snapshotsgendata;
+methods.Multi.generateData= @GaussianGenData; %@snapshotsgendata;
 methods.Multi.dsgnmatrix = @DesignMatrix;
 methods.Multi.dsgnmatrixsub = @DesignMatrixsub;
 methods.Multi.PrepDataRealization = @PrepDataRealization;
@@ -118,12 +118,12 @@ methods.Multi2.CompMulti = @CompMultiACA2;
 methods.Multi2.Kfold = @CompMultiACA2Sub;
 methods.Multi2.ChooseTruncations = @MethodOfEllipsoids_7; %@MethodOfEllipsoids_5; %@MethodOfEllipsoids; %
 methods.Multi2.InitializeResults = [];
-methods.Multi2.ConstructResidualSubspace = @SmoothResidualComponents; %@ResidSubspace3; 
+methods.Multi2.ConstructResidualSubspace = @ResidSubspace3; 
 methods.Multi2.SepFilter = @SepFilter3; %@SepFilter3;
 methods.Multi2.SplitTraining = @SplitTraining;
 methods.Multi2.CloseFilter = @ConstructOptimalBasis;
 methods.Multi2.svd = @mysvd2;
-methods.Multi2.isTallMatrix = @(X)  size(X,1) >= 3*size(X,2) && size(X,1) > 8000;
+methods.Multi2.isTallMatrix = @(X)  size(X,1) >= 3*size(X,2) && size(X,1) > 5000;
 
 methods.Multi2.FeatureSelect = @CompMultiFeatureSelect;
 methods.Multi2.FeatureSelectSub = @CompMultiFeatureSelectSub;

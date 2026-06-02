@@ -5,9 +5,12 @@ rF = 'results';
 lFS = 12;
 TrimB = false;
 
+KeepBalanced = "Balanced";
+KeepKernel = "RBF";
+
 
 ClassSize = [600, 200, 10000];
- ClassSize = sprintf('%d_TrainingA_%d_TrainingB_%d_Testing', ...
+ClassSize = sprintf('%d_TrainingA_%d_TrainingB_%d_Testing', ...
         ClassSize(1), ClassSize(2), ClassSize(3));
 
  
@@ -18,11 +21,12 @@ transforms = arrayfun(@(x) replace( ...
     '.', '_'), ...
     5*10.^[-5,-4,-3]);
 
-transforms = ["id", transforms];
+transforms = "id";
+%transforms = ["id", transforms];
 
 % transforms = arrayfun(@(x) sprintf("sin(%dx)",x) , [1,3,7] );
 
-DSidx = [1:5, 11, 9, 8]; 
+DSidx = [3:5, 11, 9, 8]; 
 
 resultFolder = 'Manual_Hyperparameter_Selection';
 Balances = ["Balanced"];
@@ -45,12 +49,6 @@ DataAliases = ["GCM", "newAD", ...
 %% Iterate over ADNIs, Balances, and Accuracy measures
 
 DataSets = DataSets(DSidx); DataAliases = DataAliases(DSidx);
-
-
-fileIDs = OpenFileIDs(rF, nesting);
-Best = MakeBestStruct(DataSets);
-Best = arrayfun(@(b,d) setfield(b, 'DS', d), Best, DataSets);
-Best = arrayfun(@(b) setfield(b, 'nesting', nesting), Best);
 
 for iTr = 1:length(transforms)
     transform = transforms(iTr);
@@ -78,7 +76,7 @@ for iBalance = 1:length(Balances)
         
         %if ismember(iplot, [2 4]), ax.Position(1) = 0.53; end
         Balance = Balances(iBalance);
-        X2 = GetFiles(DS, Balance, rF, transform, ClassSize);
+        X2 = GetFiles(DS, Balance, rF, transform, ClassSize, KeepBalanced, KeepKernel);
         %if skipDS, continue, end
         assert(~isempty(X2), 'X2 is empty')
 
@@ -88,13 +86,13 @@ for iBalance = 1:length(Balances)
             
 
             assert(~isempty(X3), 'X3 is empty')
-            [x1, y1, l] = GetPlotData(X3, Acc, Algo);
+            [x1, y1, l, LineSpec] = GetPlotData(X3, Acc, Algo);
             legstr = [legstr, l];
 
 
         %% Set up axes
        
-        PlotOnAxes(DA, Balance, x1, y1, iAlgo, ax, iplot, Acc);
+        PlotOnAxes(DA, Balance, x1, y1, iAlgo, ax, iplot, Acc, LineSpec);
         %Best(iDS) = UpdateBest(Best(iDS), x1, y1, l, Acc, Balance);
                                
       
@@ -114,7 +112,7 @@ end
 FixAxes(f);
 
 
-plotPath = fullfile('..',rF,resultFolder,'Synthetic','Graphs');
+plotPath = fullfile('..',rF,resultFolder,'Synthetic','Graphs', 'Noise');
 if ~isfolder(plotPath), mkdir(plotPath), end
 exportgraphics(f, fullfile(plotPath, ...
     sprintf('%s_%s_Synthetic.pdf', DS, transform ...
@@ -125,167 +123,37 @@ end
 end
 
 
-% for iDS = 1:length(DataSets)
-%     DS = DataSets(iDS); DA = DataAliases(iDS);
-%     fileID = GetFileID(DA, fileIDs);
-%     WriteFigureLatex(fileID, DS, DA, Best(iDS));
-% end
-% fclose all;
-% 
-% save(fullfile(plotPath, 'BestStruct.mat'), 'Best');
-
-
-
-end
-
-
-%==========================================================================
-%==========================================================================
-function Best = MakeBestStruct(DS)
-
-for Acc = ["AUC", "accuracy", "F1score"];
-%Best.(Acc).DS = [];
-Best.(Acc).Performance = 0;
-Best.(Acc).Algo = [];
-Best.(Acc).Mres = [];
-Best.(Acc).Balance = [];
-end
-
-Best = repmat(Best, size(DS));
-
-end
-%=========================================================================
-
-function Best = UpdateBest(Best, x1, y1, l, Acc, Balance)
-
-[maxy1, imax] = max(y1); maxx1 = x1(imax); 
-
-%if Acc == "accuracy", keyboard, end
-if maxy1 >= Best.(Acc).Performance
-    Best.(Acc).Performance = maxy1;
-    Best.(Acc).Algo = l;
-    Best.(Acc).Mres = maxx1;
-    Best.(Acc).Balance = Balance;
-else
-    return 
-end
-
 end
 %==========================================================================
-
-function fileIDs = OpenFileIDs(rF, nesting)
-
-folder = fullfile('..', rF, 'Manual_Hyperparameter_Selection', 'Kfold', 'Graphs');
-tables = ["Genetic_Graphs", "ADNI_Graphs", "CSF_Graphs"];
-
-fileIDs = nan(size(tables));
-for tab = tables
-    fileIDs(tables == tab) = fopen(fullfile(folder, ...
-        sprintf('%s_%s.tex', tab, nesting)), 'w');
-end
-
-end
 %==========================================================================
 
-function fileID = GetFileID(DA, fileIDs)
-
-DataAliases = ["GCM", "newAD", ...
-                arrayfun(@(x) sprintf("ADNI (%s)", x),...
-               ["AD vs. CN", "AD vs. LMCI", "CN vs. LMCI"]),...
-               arrayfun(@(x) sprintf("CSF (%s)",x),...
-               ["EMCI vs. LMCI", "CN vs. EMCI", "CN vs. LMCI", "AD vs. LMCI", "AD vs. EMCI", "AD vs. CN"])...
-               ];
-
-if ismember(DA, DataAliases(1:2)), fileID = fileIDs(1);
-elseif ismember(DA, DataAliases(3:5)), fileID = fileIDs(2);
-elseif ismember(DA, DataAliases(6:end)), fileID = fileIDs(3);
-else keyboard
-end
-
-end
-
-%==========================================================================
-function WriteFigureLatex(fileID, DS, DA, Best)
-
-
-Benchmarks = {'SVM_Lin', 'SVM_RBF', 'LogitBoost', 'RUSBoost', 'BAGging'};
-for Acc = ["AUC", "accuracy"]
-
-switch ismember(Best.(Acc).Algo, Benchmarks)
-    case true, Mres_str.(Acc) = '';
-        Best.(Acc).Balance = '';
-    case false
-        Mres_str.(Acc) = sprintf(', $\\Mres = %d$', Best.(Acc).Mres);
-end
-end
-
-
-fprintf(fileID, '\\begin{figure}[H] \n');
-fprintf(fileID, ['\\centering \n']);
-fprintf(fileID, ['\\caption{\\textbf{%s}. Best AUC: %0.3f (%s %s%s). \n' ...
-    'Best accuracy: %0.3f (%s %s%s)} \n'], ...
-    DA,...
-    Best.AUC.Performance, Best.AUC.Balance, Best.AUC.Algo, Mres_str.AUC,...
-    Best.accuracy.Performance, Best.accuracy.Balance, Best.accuracy.Algo, Mres_str.accuracy);
-fprintf(fileID,...
-    ['\\includegraphics['...
-    'height = \\globalLGHeight, '...
-    'width = \\globalLGWidth]'...
-    '{Graphs2/%s_%s.pdf} \n'], DS, Best.nesting);
-
-
-fprintf(fileID, '\\label{%s_LineGraph} \n', DA);
-fprintf(fileID, '\\end{figure} \n\n\n');
-
-end
-
-%==========================================================================
-
-
-
-%==========================================================================
-
-function X= GetFiles(DS, Balance, rF, transform, ClassSize)
-
-    %rF = 'results2';
+function X= GetFiles(DS, Balance, rF, transform, ClassSize, KeepBalanced, KeepKernel)
     MOE = 'Manual_Hyperparameter_Selection';
-    %nesting = 'Unnested';
     CrossVal = 'Synthetic';
-    
-   
-
-    % if isnumeric(transform)
-    %     transform = sprintf('sin(%dx)', transform);
-    % end
-
-
     folderpath = fullfile('..', rF, MOE, CrossVal, DS, ClassSize, transform, '**', '*.mat');
     X = dir(folderpath); X(matches({X.name}, [".", ".."])) = [];
-    % X(~contains({X.name}, transform)) = [];
-    % X = dir(fullfile(X.folder, X.name, '**', '*.mat'));
-    % 
 
-    % Leave_K_out = {X.name};
-    % K = cellfun(@(x) extractBetween(x, 'Leave_', '_out'), Leave_K_out);
-    % Ks = cellfun(@str2num, K); %Ks = Ks(Ks > 1);
-    % [K, iK] = min(Ks); %min(cellfun(@str2num, K));
-    % Leave_K_out = sprintf('Leave_%d_out', K);%Leave_K_out{iK};
-    % folderpath = fullfile(folderpath, Leave_K_out, '**');
-    % X = dir(folderpath); 
-    % X(matches({X.name}, [".", ".."])) = []; 
-    % X(~contains({X.name}, '.mat')) = [];
-    %X2 = X(contains({X.folder}, Balance) | contains({X.name}, 'Benchmark'));
+    switch KeepBalanced
+        case "Balanced"
+            idx = contains({X.folder}, "Balanced") | contains({X.name}, "Benchmark");
+            X = X(idx);
+        case "Unbalanced"
+            X(contains({X.folder}, "Balanced")) = [];
+    end
 
-    %XBench = X(contains({X.name}, 'Benchmark'));
-    %XBal = X(contains({X.folder}, Balance));
-    %XTrans = X(contains({X.folder}, transform));
-    %X = [XBench; XTrans];
+    Algos = ("MLS"| "ACA-S"|"ACA-L"|"Benchmark");
+    switch KeepKernel
+        case "linear"
+            X(contains({X.name}, Algos) & contains({X.name}, "Radial")) = [];
+        case "RBF"
+            X(contains({X.name}, Algos) & contains({X.name}, "Linear")) = [];
+    end
 
 end
 
 %=======================================================================
 
-function [x1, y1, l] = GetPlotData(X3, Acc, Algo)
+function [x1, y1, l, LineSpec] = GetPlotData(X3, Acc, Algo)
 TrimB = false;
  %% Get Better performing Kernel
             X4 = arrayfun(@(x) load(fullfile(x.folder, x.name)), X3);
@@ -293,11 +161,23 @@ TrimB = false;
             X4 = X4(iBestAcc);
             
             if TrimB, [X4.parameters, X4.results] = TrimBenchmark(X4.parameters, X4.results); end
+            
+            if Algo ~= "Benchmark"
+            switch X4.parameters.svm.kernal
+                case true, LineSpec1 = {'Marker', 's'};
+                case false, LineSpec1 = {'Marker', 'o'};
+            end
+            else 
+                LineSpec1 = {};
+            end
 
-            % switch X4.parameters.svm.kernal
-            %     case true, l = "-RBF";
-            %     case false, l = "-Lin";
-            % end
+            switch X4.parameters.multilevel.splitTraining
+                case true, LineSpec2 = {'LineStyle', '--'};
+                case false, LineSpec2 = {'LineStyle', '-'};
+            end
+
+            LineSpec = [LineSpec1, LineSpec2];
+
 
             l = "";
                   
@@ -326,7 +206,7 @@ TrimB = false;
 end
 
 function PlotOnAxes(DA, Balance, x1, y1, ...
-                    iAlgo, ax, iplot,Acc)
+                    iAlgo, ax, iplot,Acc, LineSpec)
 
 minmax = @(x) [min(x) max(x)];
 YTicks = 0.55:0.05:1;
@@ -341,7 +221,8 @@ YTickLabels = num2cell(YTicks); YTickLabels(1:2:end) = {''};
 %axValues = {minmax(YTicks), 'on', 'manual', YTicks, YTickLabels, yFS};
 axNames = {'YGrid', 'FontSize'};
 axValues = {'on', yFS};
-LineArgs = {'LineWidth', 3, 'Marker', 's', 'MarkerSize', MarkerSize, 'MarkerFaceColor', 'auto'};
+LineArgs = {'LineWidth', 3, 'MarkerSize', MarkerSize, 'MarkerFaceColor', 'auto'};
+LineArgs = [LineArgs, LineSpec];
 %AxlabelArgs = {'Interpreter', 'latex', 'FontSize', FontSize};
 
 
@@ -374,27 +255,24 @@ LineColors = [0.12, 0.21, 1; %MLS
                 Exponent = floor(log10(max(ax.XTick)));
                 ax.XAxis.Exponent = Exponent;
             end
-            %ax.XAxis.TickLabelFormat = '%g';
-            % if length(ax.XTickLabel) >= 7
-            %     ax.XTickLabel(1:2:end) = {''};
-            % end
+
         end
         
-        if iplot == 1
-        annLeft = -0.05;
-        annWidth = 1;
-        annHeight = 0.05;
-        annBottom = 0.9-annHeight;
-        annPos = [annLeft, annBottom, annWidth, annHeight];
-        annotation('textbox',...
-            'String', DA,...
-            'FontSize', tFS + 2,...
-            'VerticalAlignment', 'middle', ...
-            'HorizontalAlignment', 'center',...
-            'Interpreter', 'latex',...
-            'Position',annPos,...
-            'EdgeColor', 'none');
-        end
+        % if iplot == 1
+        % annLeft = -0.05;
+        % annWidth = 1;
+        % annHeight = 0.05;
+        % annBottom = 0.9-annHeight;
+        % annPos = [annLeft, annBottom, annWidth, annHeight];
+        % annotation('textbox',...
+        %     'String', DA,...
+        %     'FontSize', tFS + 2,...
+        %     'VerticalAlignment', 'middle', ...
+        %     'HorizontalAlignment', 'center',...
+        %     'Interpreter', 'latex',...
+        %     'Position',annPos,...
+        %     'EdgeColor', 'none');
+        % end
         %ax.XLim = minmax(X4.parameters.multilevel.Mres);
 
 end
@@ -403,7 +281,7 @@ end
 function FixAxes(f)
 minmax = @(x) [min(x) max(x)];
 ax = findall(f,'type','axes');
-Positions = [0.2000    0.1200    0.4287    0.2729;
+Positions = [0.2000    0.1700    0.4287    0.2729;
              0.2000    0.5238    0.4287    0.2729];
 minHeight = 0.8*min(arrayfun(@(x) x.Position(4), ax));
 minWidth = min(arrayfun(@(x) x.Position(3), ax));
@@ -411,16 +289,25 @@ for i = 1:length(ax)
     ichild = contains({ax(i).Children.DisplayName}, 'MLS');
     xl = minmax(ax(i).Children(ichild).XData);
     ax(i).XLim = xl;
-     p = ax(i).Position;
-     p([3 4]) = [minWidth minHeight]; 
-     p(2) = p(2) - ceil(i/2)*0.06;
-     p(1) = 0.2;
-     ax(i).Position = p;
+     % p = ax(i).Position;
+     % p([3 4]) = [minWidth minHeight]; 
+     % p(2) = p(2) + (2-i)*0.9;
+     % p(1) = 0.2;
+     % ax(i).Position = p;
      GetWindow(ax(i));
      ax(i).Position = Positions(i,:);
      
 
-    %ax(i).XScale = 'log';
+    %% Add Asterisk to best Algos
+    ch = ax(i).Children; 
+    AlgoMaxes = arrayfun(@(x) max(x.YData), ch);
+    AlgoMaxes = AlgoMaxes(end:-1:1);
+    [AlgoMax, iAlgoMax] = max(AlgoMaxes);
+    isAlgoMax = abs(AlgoMaxes - AlgoMax) < 0.00001;
+    leg = legend(ax(i));
+    str = string(leg.String);
+    str(isAlgoMax) = str(isAlgoMax) + "$^*$";
+    leg.String = str;
 end
 end
 %==========================================================================

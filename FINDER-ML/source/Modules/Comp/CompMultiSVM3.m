@@ -5,32 +5,48 @@ close all;
 
 methods = DefineMethods;
 
-MOEs = arrayfun( @(x) str2func(sprintf('MethodOfEllipsoids_%d',x)), 8:11, 'UniformOutput', false);
+%MOEs = arrayfun( @(x) str2func(sprintf('MethodOfEllipsoids_%d',x)), 8:11, 'UniformOutput', false);
 
 DS = [methods.data.ADNI_files,...
      {'newAD'},...
      methods.data.CSF_files([1 3 5]),...
      {'GCM'}];
 
+noise = {'id', 0.00005, 0.0005, 0.005};
+
 D = methods.all.ValuesTable('Balance', {true, false},...
-                            'Kernel', {true, false},...
+                            'Kernel', {false,true},...
                             'Eigenspace', {'smallest', 'largest'},...
-                            'Name', DS,...
-                            'Algorithm', {0,1});
-
-%  myCluster = parcluster('Processes');
-% delete(myCluster.Jobs);
-
+                            ...'CRS', CRS,...
+                            'Name', {'GCM'},...
+                            'Noise', noise,...
+                            'Algorithm', {2});
 
 
-for irow3 = 22:height(D)
 
-delete(gcp('nocreate'));
+
+for irow3 = 1:height(D)
+
 parameters =  methods.all.initialization();
 parameters.multilevel.splitTraining = D.Balance(irow3); %D{irow3,1};
 parameters.svm.kernal = D.Kernel(irow3); %D{irow3,2};
 parameters.multilevel.eigentag = D.Eigenspace{irow3}; % D{irow3,3};
+
+
+omega = D.Noise{irow3};
+if ischar(omega) | isstring(omega)
+if contains(omega, digitsPattern(1,4)) 
+    omega = str2double(omega);
+end
+end
+if iscell(D.Noise)
+    parameters.synthetic.GaussianNoiseFactor = D.Noise{irow3}; %omega;
+elseif isnumeric(D.Noise)
+    parameters.synthetic.GaussianNoiseFactor = D.Noise(irow3);
+end
+
 parameters.multilevel.svmonly = D.Algorithm(irow3); %D{irow3,4};
+
 %parameters.multilevel.nested = D.Nesting(irow3);
 %parameters.misc.PCA = D.PCA(irow3);
 %parameters.multilevel.chooseTrunc = D.ChooseTrunc(irow3);
@@ -38,6 +54,7 @@ parameters.multilevel.svmonly = D.Algorithm(irow3); %D{irow3,4};
 
 parameters.data.label = D.Name{irow3};
 parameters.data.name = [parameters.data.label '.txt'];
+...methods.Multi2.ConstructResidualSubspace = D.CRS{irow3};
 parameters = methods.data.GetCommonParameters(parameters, methods);
     
     
@@ -113,13 +130,18 @@ parameters = methods.data.GetCommonParameters(parameters, methods);
       
 
      parameters = methods.all.filefunc(parameters, methods);
+     parameters.data.irow = irow3;
      Datas.rawdata.AData = []; Datas.rawdata.BData = [];
+     %PrintResultsTxt(Datas, parameters, methods, results);
      save(fullfile(parameters.datafolder,parameters.dataname), 'parameters', 'results', 'Datas');
      save('irow3.mat', 'irow3');
      clear Datas parameters results
+     
+
+     % Parallel pool clean up
+     % delete(gcp('nocreate'));
      % myCluster = parcluster('Processes');
      % delete(myCluster.Jobs);
-
 end
 
 end

@@ -4,38 +4,14 @@ Step 1. Download Data (instructions are at the bottom in the %%Download data sec
 
 Step 2. Type 'paths' (without quotes) in the command window to add all folder subpaths to current path
 
-Step 3. Fill out fields in InitializeParameters. Guidelines: 
+Step 3. To generate results for LPOCV with manually selected hyperparameters run 'CompMultiSVM2' in the command window
+        To generate results for synthetically generated data run 'CompMultiSVM3' 
+        To generate results for LPOCV with algorithmically selected hyperparameters, run 'CompMultiSVM4'
 
-        Set parameters.data.validationType = 'Kfold' and parameters.Kfold = 1 to perform LPOCV. 
-        set parameters.data.path  = (the location of your data file) 
-        set parameters.data.normalize = 1
-        set parameters.multilevel.chooseTrunc = 'false';
-        set parameters.parallel.on = true to run parallel loop (only if you have the parallel processing toolbox)
-        set parameters.gpuarray.on = true to run on GPU (only if you have GPU), it is not recommended to set both 
-                parameters.parallel.on and parameters.gpuarray.on to true
-
-Step 4. (Optional Batch Processing). 
-
-    To perform batch processing of results, you may run CompMultiSVM2 instead of CompMultiSVM (Step 5.)
-     Be sure to edit the CompMultiSVM2 file first. On line 12 of CompMultiSVM2.m, you will see the assignment
-        
-            D = methods.all.ValuesTable('Name', 'Value',...)
-            
-
-    The arguments come in name-value pairs. Each Name can be any character array, but each Value is a 1 x n 
-    cell array containing the arguments that you want to iterate over in the batch processing. Immediately in the 
-    for irow = 1:height(D) loop make the corresponding assingments to the parameters struct. An example is given in the
-    current CompMultiSVM2.m file 
-
-Step 5. 
-        If you want to generate results one by one, simply type CompMultiSVM in the command window. This will generate
-        the results based off of your user specified fields in the InitializeParameters.m file 
-
-Step 6. Check the results
+Step 3. Check the results
 
       The results including table of accuracy and AUC, and plots in the paper will be stored in 
       /yourpath/TensorStochasticMachineLearning/results/
-
 
 
 %%========================
@@ -87,7 +63,7 @@ Step 4. Generate the data
       Open /yourpath/TensorStochasticMachineLearning/source/Modules/PrepADNI.m, 
       and change file paths for plasma and phenotype to your data location. 
       Then run PrepADNI.m. The binary datasets will be stored in /source/ADNI_data
-=================================
+===========================================================================
 
 CSF
 
@@ -113,7 +89,6 @@ Step 4. Generate the data
       and change file paths for plasma and phenotype to your data location.
       Then run PrepCSF.m. The binary datasets will be stored in /source/data/CSF_data
 ===================================
-
 newAD 
 ====================================
 GCM 

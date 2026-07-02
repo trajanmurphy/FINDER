@@ -80,14 +80,14 @@ end
 
 
 %% Choose only a subset of the pairs to hold out if the Kfold is sufficiently low
-% if strcmp(parameters.data.validationType, 'Kfold')
-% if parameters.Kfold < ceil(NB / 5)
-%     NAvals = ceil(NA / 2);
-%     NBvals = ceil(NB / 2);
-%     %NAvals = ceil(NA / NB*10);
-%     parameters.data.NAvals = 1:NAvals;
-%     parameters.data.NBvals = 1:NBvals;
-% end
-% end
+if strcmp(parameters.data.validationType, 'Kfold')
+if parameters.Kfold < ceil(NB / 5)
+    NAvals = ceil(NA / 2);
+    NBvals = ceil(NB / 2);
+    %NAvals = ceil(NA / NB*10);
+    parameters.data.NAvals = 1:NAvals;
+    parameters.data.NBvals = 1:NBvals;
+end
+end
 
 end

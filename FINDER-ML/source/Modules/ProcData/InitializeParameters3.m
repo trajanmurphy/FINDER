@@ -2,12 +2,11 @@ function [parameters] = InitializeParameters3()
 
 %% Data parameters
 parameters.data.path = '';
-%'/restricted/projectnb/sctad/Audrey/SOMAscan7k_KNNimputed_formatted_data/'; %'/restricted/projectnb/sctad/Codes/Yumeng/'; % % %'/restricted/projectnb/sctad/Audrey/ADNI_2024_Audrey/CSF_dataset/'; %
 parameters.data.label = 'Plasma_M12_ADLMCI'; %'SOMAscan7k_KNNimputed_CN_EMCI'; %'ionosphere'; %'2024_CNEMCI_lasso_45'; %'Plasma_M12_ADLMCI'; %'GCM'; %'CSF_PET_Classification'; %
 parameters.data.name = [parameters.data.label, '.txt'];
 parameters.data.numofgene = []; % Set to empty array [] to initialize as latent data dimension
 parameters.data.normalize = 1; % if 1 then standarized
-parameters.data.validationType = 'Kfold'; %One of 'Kfold', 'Cross', or 'Synthetic'
+parameters.data.validationType = 'Synthetic'; %One of 'Kfold', 'Cross', or 'Synthetic'
 parameters.data.randomize = 'false';
 
 %% Cross Validation Parameters
@@ -44,7 +43,7 @@ parameters.misc.MachineList = ["SVM_Linear", "SVM_Radial", "LogitBoost", "RUSBoo
 parameters.misc.PCA = true;
 
 %% Assorted parameters
-parameters.parallel.on = false; % if 1 then use parloop 
+parameters.parallel.on = true; % if 1 then use parloop 
 parameters.svm.kernal = false; % if 1 then use SVM with kernal, else use linear boundary 
 parameters.snapshots.controlRand = false;
 parameters.gpuarray.on = false;% iftr1 then convert all arrays to GPU arrays. 

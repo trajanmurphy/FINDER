@@ -2,18 +2,7 @@ function [parameters] = InitializeParameters()
 
 %% Data parameters
 parameters.data.path = '';
-%'/restricted/projectnb/sctad/Audrey/SOMAscan7k_KNNimputed_formatted_data/';
-%'/restricted/projectnb/sctad/ADNI_Plasma_Sicheng/';
-%'';
-%'/restricted/projectnb/sctad/Codes/Yumeng/';
-
-
-
 parameters.data.label = 'Plasma_M12_CNLMCI';
-%'SOMAscan7k_KNNimputed_EMCI_LMCI';
-%'GCM';
-%'newAD'; 
-
 parameters.data.name = [parameters.data.label, '.txt'];
 
 parameters.data.validationType = 'Synthetic';  %One of 'Synthetic', 'Kfold', or 'Cross'
@@ -72,7 +61,7 @@ parameters.Ablation.List = ["2nd degree polynomial kernel",... Use polynomial ke
 
 
 %% Assorted parameters
-parameters.parallel.on = false; %true = use parallel toolbox
+parameters.parallel.on = true; %true = use parallel toolbox
 parameters.svm.kernal = true; % true = use RBF for SVM separating surface (FINDER only)
 parameters.gpuarray.on = false; % true = convert all data arrays to GPU arrays. 
 parameters.snapshots.controlRand = false;

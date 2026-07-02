@@ -2,9 +2,10 @@ clc;
 clear all;
 close all;
 
-%irow = 87
+%% LPOCV with Manually Selected Hyperparameters
 
 methods = DefineMethods;
+methods.all.initalization = @InitializeParameters;
 
 MOEs = arrayfun( @(x) str2func(sprintf('MethodOfEllipsoids_%d',x)), 8:11, 'UniformOutput', false);
 
@@ -13,34 +14,12 @@ DS = [methods.data.ADNI_files,...
      methods.data.CSF_files([1 3 5]),...
      {'GCM'}];
 
-CRS = {@MLSTruncDim, @MLSTrunc, @EigenbasisATrunc, @EigenbasisATruncDim, ...
-    @SymmetrizeResidualComponents, @SelectNoisyFeatures, @SelectNoisyMLSFeatures};
-
-noise = {0.05, 0.5};
-
 D = methods.all.ValuesTable('Balance', {true, false},...
                             'Kernel', {true, false},...
                             'Eigenspace', {'smallest', 'largest'},...
-                            ...'CRS', CRS,...
-                            'Name', DS,...); %,...
-                            'Noise', noise,...); %,...
+                            'Name', DS,...
                             'Algorithm', {2, 1, 0});
 
-% D2 = methods.all.ValuesTable('Balance', {true, false},...
-%                             'Kernel', {true,false},...
-%                             'Eigenspace', {'smallest', 'largest'},...
-%                             'Name', DS,...
-%                             'Noise', noise,...
-%                             'Algorithm', {1});
-
-
-
-% isid = rowfun(@(x) strcmp(x, "id"), D(:, 'Noise')); isid = isid.Var1;
-% D.Noise(~isid) = cellfun(@str2double, D.Noise(~isid));
-
-%  myCluster = parcluster('Processes');
-% delete(myCluster.Jobs);
-%D = D(ismember(D.Algorithm, [0, 1]), :);
 
 for irow2 = 1:height(D)
 %delete(gcp('nocreate'));
@@ -50,32 +29,24 @@ parameters.svm.kernal = D.Kernel(irow2); %D{irow2,2};
 parameters.multilevel.eigentag = D.Eigenspace{irow2}; % D{irow2,3};
 
 
-omega = D.Noise(irow2);
-if ischar(omega) | isstring(omega)
-if contains(omega, digitsPattern(1,4)) 
-    omega = str2double(omega);
-end
-end
-if iscell(D.Noise)
-    parameters.synthetic.GaussianNoiseFactor = D.Noise{irow2}; %omega;
-elseif isnumeric(D.Noise)
-    parameters.synthetic.GaussianNoiseFactor = D.Noise(irow2);
-end
+% omega = D.Noise(irow2);
+% if ischar(omega) | isstring(omega)
+% if contains(omega, digitsPattern(1,4)) 
+%     omega = str2double(omega);
+% end
+% end
+% if iscell(D.Noise)
+%     parameters.synthetic.GaussianNoiseFactor = D.Noise{irow2}; %omega;
+% elseif isnumeric(D.Noise)
+%     parameters.synthetic.GaussianNoiseFactor = D.Noise(irow2);
+% end
 
 parameters.multilevel.svmonly = D.Algorithm(irow2); %D{irow2,4};
 
-%parameters.multilevel.nested = D.Nesting(irow2);
-%parameters.misc.PCA = D.PCA(irow2);
-%parameters.multilevel.chooseTrunc = D.ChooseTrunc(irow2);
-%methods.Multi2.ChooseTruncations = D.Ellipsoid{irow2};
-
 parameters.data.label = D.Name{irow2};
 parameters.data.name = [parameters.data.label '.txt'];
-...methods.Multi2.ConstructResidualSubspace = D.CRS{irow2};
 parameters = methods.data.GetCommonParameters(parameters, methods);
-    
-    
-
+ 
  t0 = tic;
  for k = 1:parameters.data.nk
      t1 = toc(t0);

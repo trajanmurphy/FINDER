@@ -3,6 +3,8 @@ clear all;
 close all;
 
 
+%% LPOCV with Algorithmically selected hyperparameters
+
 methods = DefineMethods;
 
 MOEs = arrayfun( @(x) str2func(sprintf('MethodOfEllipsoids_%d',x)), 8:11, 'UniformOutput', false);
@@ -15,15 +17,16 @@ DS = [methods.data.ADNI_files,...
 D = methods.all.ValuesTable('Balance', {true, false},...
                             'Kernel', {true, false},...
                             'Eigenspace', {'smallest', 'largest'},...
-                            'Name', methods.data.CSF_files([1 3 5]),...
-                            'Algorithm', {2});
+                            'Name',DS,...
+                            'Algorithm', {2,1,0},...
+                            'MOE', MOEs);
 
 %  myCluster = parcluster('Processes');
 % delete(myCluster.Jobs);
 
 
 
-for irow4 = 18:-1:10
+for irow4 = 1:height(D)
 
 delete(gcp('nocreate'));
 parameters =  methods.all.initialization();
@@ -31,11 +34,7 @@ parameters.multilevel.splitTraining = D.Balance(irow4); %D{irow4,1};
 parameters.svm.kernal = D.Kernel(irow4); %D{irow4,2};
 parameters.multilevel.eigentag = D.Eigenspace{irow4}; % D{irow4,3};
 parameters.multilevel.svmonly = D.Algorithm(irow4); %D{irow4,4};
-%parameters.multilevel.nested = D.Nesting(irow4);
-%parameters.misc.PCA = D.PCA(irow4);
-%parameters.multilevel.chooseTrunc = D.ChooseTrunc(irow4);
-%methods.Multi2.ChooseTruncations = D.Ellipsoid{irow4};
-
+methods.Multi2.ChooseTruncations = D.MOE{irow4};
 parameters.data.label = D.Name{irow4};
 parameters.data.name = [parameters.data.label '.txt'];
 parameters = methods.data.GetCommonParameters(parameters, methods);

@@ -1,0 +1,9 @@
+Dataset, Balanced, Kernel, Mres, Level
+GCM, 1, 0, 11071, 0
+newAD, 1, 0, 1989, 4
+Plasma_M12_ADCN, 0, 1, 136, 2 
+Plasma_M12_ADLMCI, 1, 1, 141, 3
+Plasma_M12_CNLMCI, 0, 1, 126, 1
+SOMAscan7k_KNNimputed_AD_CN, 0, 0, 5982, 1
+SOMAscan7k_KNNimputed_AD_LMCI, 0, 0, 6494, 2
+SOMAscan7k_KNNimputed_CN_LMCI, 0, 1, 5982, 1

@@ -11,7 +11,7 @@ ep = 0.001;
 
 
 close all
-TablePath = fullfile('..','results2','Manual_Hyperparameter_Selection', 'Graphs');
+TablePath = fullfile('results2','Manual_Hyperparameter_Selection', 'Kfold', 'Tables');
 load(fullfile(TablePath, 'RunTimeData.mat')); 
     Run_Times = Run_Times';
     [Run_Times, Headers] = RearrangeRun_Times(Run_Times, Headers);

@@ -8,10 +8,10 @@ delete(gcp('nocreate'))
 %% Define Methods
 methods = DefineMethods;
 
+
 %% initialize parameters
-%methods.all.initialization = InitializeParameters3;
-[parameters] =  methods.all.initialization();
-%parameters = methods.data.GetCommonParameters(parameters, methods);
+parameters =  methods.all.initialization();
+parameters = methods.data.GetCommonParameters(parameters, methods);
 
  t0 = tic;
  for k = 1:parameters.data.nk
@@ -26,10 +26,8 @@ methods = DefineMethods;
       %Initialize Maxium Multilevel
       parameters = methods.all.GetMaxMultiLevel(Datas, parameters, methods);
    
-
       % Create results structure
       [results] = methods.all.iniresults(parameters);
-
 
      
      %parameters.transform.istransformed = false;
@@ -38,12 +36,6 @@ methods = DefineMethods;
       % update parameters.data.n to number of simulated data points
      [parameters] = methods.all.Datasize(Datas, parameters);
 
-      % if parameters.multilevel.chooseTrunc
-      % 
-      % return
-      % end
-
-     %Plot Data if handles are there
       if parameters.transform.createPlots
       if ~isempty(methods.transform.createPlot)
           for i = 1:length(methods.transform.createPlot)
@@ -68,7 +60,6 @@ methods = DefineMethods;
          case 0
          %MLS
          results = methods.Multi.CompMulti(methods, Datas, parameters, results);
-         %parameters = ResidDimensionForMOLS(Datas, parameters, methods);
          case 2
          %ACA 
          results = methods.Multi2.CompMulti(Datas, parameters, methods, results);
@@ -84,10 +75,9 @@ methods = DefineMethods;
 
      t2 = toc(t0);
       
-      results.run_time = duration(0,0,t2 - t1, 'Format', 'hh:mm:ss');
-      results.creation_time = datetime;
+     results.run_time = duration(0,0,t2 - t1, 'Format', 'hh:mm:ss');
+     results.creation_time = datetime;
      
-
      parameters = methods.all.filefunc(parameters, methods);
      Datas.rawdata.AData = []; Datas.rawdata.BData = [];
      save(fullfile(parameters.datafolder,parameters.dataname), 'parameters', 'results', 'Datas');

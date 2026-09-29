@@ -5,14 +5,14 @@ function [Datas, parameters] = CompMultiConstructMachine2(Datas, parameters, met
             NFeatures = size(Datas.A.Machine,1);
             switch parameters.multilevel.nested
                 case 0 %not nested
-                    Mres = [0, parameters.multilevel.Mres_auto];
+                    Mres = [0, parameters.multilevel.Mres];
                     Mres = cumsum(Mres);
                     iFeatures = Mres(l+1)+1 : Mres(l + 2);
                 case 1 %Inner nesting
-                    Mres = [0, parameters.multilevel.Mres_auto];
+                    Mres = [0, parameters.multilevel.Mres];
                     iFeatures = 1 : Mres(l + 2); 
                 case 2 %Outer nesting
-                    Mres = parameters.multilevel.Mres_auto;
+                    Mres = parameters.multilevel.Mres;
                     iFeatures = NFeatures:-1:(NFeatures - Mres(l+1)+1);
             end
 

@@ -1,0 +1,107 @@
+function DetectACA_SChangePoint
+close all
+
+%% Data Set parameters
+p.DSidx = [1:8];
+p.Results = "results";
+p.MOE = "Manual_Hyperparameter_Selection";
+p.Nesting = "Inner-Nesting";
+p.Normalized = "MyUnitVariance2";
+p.Truncs = [39, 8, 5, 5, 5, 8, 8, 8];
+p.Trunc = [];
+p.CrossVal = "Kfold";
+p.HoldOut = "Leave_5_out";
+
+p.alpha = [0.0001, 0.001, 0.05];
+p.Markers = ["*", "**", "***"];
+
+p = GetDataSets(p);
+initBest = zeros(length(p.Algos)-1,1);
+
+for iacc = 1:length(p.Accs)
+    p.Acc = p.Accs(iacc);
+
+for iDS = 1:length(p.DS)
+
+    for il = ["s", "a", "t"]
+    p.("d" + il) = p.("D" + upper(il))(iDS); 
+    end
+    p.Trunc = p.Truncs(iDS);
+    p = GetFiles(p);
+         
+for iAlgo = 1:length(p.Algos)
+    p.Algo = p.Algos(iAlgo); 
+    p = GetPlotData(p);
+
+end
+    p = PrintChange(p);
+end
+   
+end
+
+
+end
+%% ==========================================================================
+%% ==========================================================================
+function p = GetDataSets(p)
+a1 = ["AD" "AD" "CN"]; a2 = ["CN" "LMCI" "LMCI"];
+DataSets(1:2) = ["GCM" "newAD"];
+DataSets(3:5) = "Plasma_M12_" + a1 + a2;
+DataSets(6:8) = "SOMAscan7k_KNNimputed_" + a1 + "_" + a2;
+DataAliases(1:2) = DataSets(1:2);
+DataAliases(3:5) = "ADNI (" + a1 + " vs. " + a2 + ")";
+DataAliases(6:8) = replace(DataAliases(3:5), "ADNI", "CSF");
+p.DS = DataSets;
+p.DA = DataAliases;
+
+fields = ["DS", "DA", "Truncs"];
+for field = fields
+    p.(field) = p.(field)(p.DSidx);
+end
+
+p.DT = pad(p.DA, max(strlength(p.DA)));
+
+p.Algos = [ "ACA-S"];
+p.Finder = ["MLS", "ACA-S", "ACA-L"];
+p.isFinder = @(A) ismember(A, p.Finder);
+p.Accs = ["accuracy"];
+
+p.TableFolder = fullfile("..", p.Results, p.MOE, p.CrossVal, "Tables");
+end
+%% ========================================================================
+function p = GetFiles(p)
+
+% Obtain Paths to results
+folderpath = fullfile('..', p.Results, p.MOE, p.CrossVal, p.ds, p.HoldOut,'**', '*.mat');
+X = dir(folderpath); 
+X = fullfile({X.folder}, {X.name});   
+XBench = X(contains(X,'Benchmark') &...
+           contains(X,p.Normalized));
+XBal = X(...
+         contains(X,p.Nesting) & ...
+         contains(X,p.Normalized) & ...
+         contains(X,"Eigen-" + p.Trunc));
+p.paths = vertcat(XBench, XBal{:});
+assert(~isempty(p.paths), 'No paths found')
+
+end
+%% ==========================================================================
+function p = GetPlotData(p)
+
+iAlgo = p.Algos == p.Algo;
+idx = contains(p.paths, p.Algo);
+Paths = p.paths(idx);
+X = cellfun(@load, Paths, "UniformOutput", false);
+[~,iX] = min(cellfun(@(x) min(x.results.errorRate), X));
+p.X = X{iX};
+
+end
+%% ========================================================================
+function p = PrintChange(p)
+
+fprintf(p.dt);
+fprintf("|")
+
+end
+
+

@@ -12,11 +12,9 @@ switch parameters.multilevel.svmonly
     case 4, nLevels = length(parameters.Ablation.List);
 
 end
-
-
-    if parameters.multilevel.chooseTrunc %&& parameters.multilevel.svmonly == 2
-        nLevels = 1;
-    end
+if parameters.multilevel.chooseTrunc %&& parameters.multilevel.svmonly == 2
+    nLevels = 1;
+end
 
 
 
@@ -41,9 +39,8 @@ results.notes = ["First dimension indexes the ith iteration over Class A subsets
 results.DimRunTime = nan(1,nLevels);
 
 
-if parameters.multilevel.chooseTrunc
-    results.TruncArray = nan(length(parameters.data.NAvals),...
-                            length(parameters.data.NBvals),...
-                            2);
 
-end
+results.TruncArray = nan(length(parameters.data.NAvals),...
+                         length(parameters.data.NBvals),...
+                         2);
+

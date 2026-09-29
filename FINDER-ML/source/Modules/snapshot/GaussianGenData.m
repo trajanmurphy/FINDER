@@ -1,6 +1,6 @@
 function [Datas, parameters] = GaussianGenData(Datas, methods, parameters)
 
-
+tol = 10e-8;
 for C = ["A", "B"]
     rawdata = Datas.rawdata.(C + "Data");
     m = mean(rawdata,2);
@@ -12,7 +12,7 @@ for C = ["A", "B"]
     [Phi, Lambda, Y] = svd(X, 'econ', 'vector'); 
 
     EV = cumsum(Lambda.^2) / sum(Lambda.^2);
-    R = find(EV >= 1 - eps(1), 1, 'first');
+    R = find(EV >= 1 - tol, 1, 'first');
     Phi = Phi(:,1:R); Lambda = Lambda(1:R); Y = Y(:,1:R);
     nY = size(Y,2);
 

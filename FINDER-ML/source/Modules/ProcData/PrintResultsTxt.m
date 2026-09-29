@@ -10,19 +10,32 @@ end
 folder = fullfile("..", "results", MOE, parameters.data.validationType,"txt_files");
 if ~isfolder(folder), mkdir(folder), end
 
-name = func2str(methods.Multi2.ConstructResidualSubspace) + ".txt";
+switch parameters.multilevel.svmonly
+    case 2
+        name = func2str(methods.Multi2.ConstructResidualSubspace) + ".txt";
+    case 1
+        name = parameters.misc.MachineList + ".txt";
+end
+
 
 file = fullfile(folder, name);
 fID = fopen(file, "a+");
 
-if mod(parameters.data.irow, 4) == 1
-    fprintf(fID, '\n%s\n', parameters.data.label);
+
+fprintf(fID, '%s\n', parameters.data.label);
+
+
+fprintf(fID, 'Balanced: %d, ', parameters.multilevel.splitTraining);
+fprintf(fID, 'Kernel: %d, ' , parameters.svm.kernal);
+fprintf(fID, 'Threshold: %0.2f\n', parameters.multilevel.concentration);
+
+for field = ["AUC", "accuracy", "precision", "recall", "specificity", "F1Score"]
+fprintf(fID, '%s = %0.4f, ', field, results.(field));
 end
 
-fprintf(fID, 'Balanced: %d, Kernel: %d', parameters.multilevel.splitTraining, parameters.svm.kernal);
-fprintf(fID, ' (AUC = %0.4f, acc = %0.4f, precA = %0.4f, precB = %0.4f)', ...
-    results.AUC, results.accuracy, results.precisionA, results.precisionB);
-fprintf(fID, ' Run Time: %s\n', results.run_time);
+%fprintf(fID, ' (AUC = %0.4f, acc = %0.4f, precA = %0.4f, precB = %0.4f)', ...
+    %results.AUC, results.accuracy, results.precisionA, results.precisionB);
+fprintf(fID, '\nRun Time: %s\n\n', results.run_time);
 fclose(fID);
 
 

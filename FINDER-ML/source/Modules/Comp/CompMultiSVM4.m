@@ -3,43 +3,45 @@ clear all;
 close all;
 
 
-%% LPOCV with Algorithmically selected hyperparameters
-
 methods = DefineMethods;
+methods.all.normalizedata = @MyUnitVariance2;
+%methods.all.initialization = @InitializeParameters3;
 
-MOEs = arrayfun( @(x) str2func(sprintf('MethodOfEllipsoids_%d',x)), 8:11, 'UniformOutput', false);
+
 
 DS = [methods.data.ADNI_files,...
      {'newAD'},...
+     {'GCM'},...
      methods.data.CSF_files([1 3 5]),...
-     {'GCM'}];
+     ];
+CRS = {@MLS_EVT_FCD3};
 
-D = methods.all.ValuesTable('Balance', {true, false},...
-                            'Kernel', {true, false},...
-                            'Eigenspace', {'smallest', 'largest'},...
-                            'Name',DS,...
-                            'Algorithm', {2,1,0},...
-                            'MOE', MOEs);
+D = methods.all.ValuesTable('Balance', {true, false}...
+    ,'Kernel', {true, false}...
+    ...,'Eigenspace' {'smallest', 'largest'},...
+    ,'Algorithm', {0} ...
+    ...,'Algorithm', {2}, ...
+    ,'Name', DS(1)...
+    ...,'CRS', CRS...
+    ...'Name', DS(7)
+         );
 
-%  myCluster = parcluster('Processes');
-% delete(myCluster.Jobs);
 
-
-
+warning("off", "all");
 for irow4 = 1:height(D)
 
-delete(gcp('nocreate'));
-parameters =  methods.all.initialization();
-parameters.multilevel.splitTraining = D.Balance(irow4); %D{irow4,1};
-parameters.svm.kernal = D.Kernel(irow4); %D{irow4,2};
-parameters.multilevel.eigentag = D.Eigenspace{irow4}; % D{irow4,3};
-parameters.multilevel.svmonly = D.Algorithm(irow4); %D{irow4,4};
-methods.Multi2.ChooseTruncations = D.MOE{irow4};
+parameters =  methods.all.initialization(); %parameters.parallel.on = false;
+
+%parameters.multilevel.concentration = D.Threshold(irow4);
+parameters.multilevel.svmonly = D.Algorithm(irow4); 
 parameters.data.label = D.Name{irow4};
+...methods.Multi.Filter = D.CRS{irow4};
+parameters.multilevel.splitTraining = D.Balance(irow4); %D{irow4,1};
+...parameters.multilevel.eigentag = D.Eigenspace{irow4};
+parameters.svm.kernal = D.Kernel(irow4); %D{irow4,2};
+
 parameters.data.name = [parameters.data.label '.txt'];
 parameters = methods.data.GetCommonParameters(parameters, methods);
-    
-    
 
  t0 = tic;
  for k = 1:parameters.data.nk
@@ -49,21 +51,12 @@ parameters = methods.data.GetCommonParameters(parameters, methods);
       parameters.data.currentiter=k; 
       [Datas, parameters] = methods.all.readcancerData(parameters, methods);     
       
-        %Initialize Max Multilevel if need be.
+      %Initialize Max Multilevel if need be.
       parameters = methods.all.GetMaxMultiLevel(Datas, parameters, methods);
     
-
       % Create results structure
       [results] = methods.all.iniresults(parameters);
 
-      
-
-
-     
-     %parameters.transform.istransformed = false;
-     
-     % Data size
-      % update parameters.data.n to number of simulated data points
      [parameters] = methods.all.Datasize(Datas, parameters);
 
      %Plot Data if handles are there
@@ -112,13 +105,17 @@ parameters = methods.data.GetCommonParameters(parameters, methods);
       
 
      parameters = methods.all.filefunc(parameters, methods);
-     Datas.rawdata.AData = []; Datas.rawdata.BData = [];
-     save(fullfile(parameters.datafolder,parameters.dataname), 'parameters', 'results', 'Datas');
+     parameters.data.irow = irow4;
+     Datas.rawdata.AData = []; Datas.rawdata.BData = []; Datas.rawdata.T = [];
+     save(fullfile(parameters.datafolder,parameters.dataname), 'parameters', 'results', 'methods');
      save('irow4.mat', 'irow4');
      clear Datas parameters results
-     % myCluster = parcluster('Processes');
-     % delete(myCluster.Jobs);
+     
 
+     %%Parallel pool clean up
+     delete(gcp('nocreate'));
+     myCluster = parcluster('Processes');
+     delete(myCluster.Jobs);
 end
 
 end

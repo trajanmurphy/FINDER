@@ -1,0 +1,154 @@
+function PrintACA_SMetrics
+close all
+
+%% Data Set parameters
+p.DSidx = [1:8];
+p.Results = "results";
+p.MOE = "Manual_Hyperparameter_Selection";
+p.Nesting = "Inner-Nesting";
+p.Normalized = "MyUnitVariance2";
+p.Truncs = [39, 8, 5, 5, 5, 8, 8, 8];
+p.Trunc = [];
+p.CrossVal = "Kfold";
+p.HoldOut = "Leave_5_out";
+
+p.alpha = [0.0001, 0.001, 0.05];
+p.Markers = ["*", "**", "***"];
+
+p = GetDataSets(p);
+
+
+for iacc = 1:length(p.Accs)
+    p.Acc = p.Accs(iacc);
+
+for iDS = 1:length(p.DS)
+    p.ds = p.DS(iDS); 
+    p.da = p.DA(iDS);
+    p.Trunc = p.Truncs(iDS);
+    p = GetFiles(p);
+         
+for iAlgo = 1:length(p.Algos)
+    p.Algo = p.Algos(iAlgo); 
+    p = GetPlotData(p);
+end
+    p = GetBest(p);
+end
+
+PrintBest(p);
+
+
+   
+end
+
+
+end
+%% ==========================================================================
+%% ==========================================================================
+function p = GetDataSets(p)
+a1 = ["AD" "AD" "CN"]; a2 = ["CN" "LMCI" "LMCI"];
+DataSets(1:2) = ["GCM" "newAD"];
+DataSets(3:5) = "Plasma_M12_" + a1 + a2;
+DataSets(6:8) = "SOMAscan7k_KNNimputed_" + a1 + "_" + a2;
+DataAliases(1:2) = DataSets(1:2);
+DataAliases(3:5) = "ADNI (" + a1 + " vs. " + a2 + ")";
+DataAliases(6:8) = replace(DataAliases(3:5), "ADNI", "CSF");
+p.DS = DataSets;
+p.DA = DataAliases;
+
+fields = ["DS", "DA", "Truncs"];
+for field = fields
+    p.(field) = p.(field)(p.DSidx);
+end
+
+p.Algos = ["MLS", "ACA-L", "ACA-S"];
+p.Finder = ["MLS", "ACA-S", "ACA-L"];
+p.isFinder = @(A) ismember(A, p.Finder);
+p.Accs = ["accuracy"];
+
+p.TableFolder = fullfile("..", p.Results, p.MOE, p.CrossVal, "Tables");
+p.Differences = nan(length(p.Algos)-1, length(p.DS));
+end
+%% ========================================================================
+function p = GetFiles(p)
+
+% Obtain Paths to results
+folderpath = fullfile('..', p.Results, p.MOE, p.CrossVal, p.ds, p.HoldOut,'**', '*.mat');
+X = dir(folderpath); 
+X = fullfile({X.folder}, {X.name});   
+XBench = X(contains(X,'Benchmark') &...
+           contains(X,p.Normalized));
+XBal = X(...
+         contains(X,p.Nesting) & ...
+         contains(X,p.Normalized) & ...
+         contains(X,"Eigen-" + p.Trunc));
+p.paths = vertcat(XBench, XBal{:});
+assert(~isempty(p.paths), 'No paths found')
+
+Y = load(p.paths{1});
+p.AccArray = nan(length(p.Algos), length(Y.parameters.multilevel.Mres));
+end
+%% ==========================================================================
+function p = GetPlotData(p)
+
+iAlgo = p.Algos == p.Algo;
+idx = contains(p.paths, p.Algo);
+Paths = p.paths(idx);
+X = cellfun(@load, Paths, "UniformOutput", false);
+[~,iX] = min(cellfun(@(x) min(x.results.errorRate), X));
+p.X = X{iX};
+p.AccArray(iAlgo,:) = p.X.results.(p.Acc);
+end
+%% ========================================================================
+function p = GetBest(p)
+
+p.isACAS = p.Algos == "ACA-S";
+differences = max(p.AccArray,[],2) - max(p.AccArray(p.isACAS,:));
+
+p.Differences(:,p.DS == p.ds) = differences(~p.isACAS);
+
+% nres = size(differences,2);
+% idx = {1:nres-1,nres};
+% 
+% 
+% for A = ["MLS", "ACA-L"]
+% for i1=1
+% iA = p.Algos == A;
+% diff2 = differences(iA,idx{i1});
+% %[minDiff, imax] = diff2(end-2);
+% minDiff = diff2(end-2); imax = length(diff2) - 3;
+% 
+% PrintBool = minDiff < p.("Best" + i1)(iA);
+% if PrintBool
+%     p.("Best" + i1)(iA) = minDiff;
+%     p.BestDS = p.da;
+%     p.BestMres = p.X.parameters.multilevel.Mres(imax);
+%     fprintf("%s\n", A);
+%     fprintf("Biggest %s difference: %0.3f. %s. Mres = %d.\n", ...
+%         p.Acc, minDiff, p.BestDS, p.BestMres);
+% end
+% 
+% end
+end
+%% ========================================================================
+function PrintBest(p)
+[MD,iMD] = max(p.Differences,[],2);
+
+Algos = p.Algos(~p.isACAS);
+for Al = Algos
+    iAl = Algos == Al;
+    imd = iMD(iAl);
+    md = MD(iAl, imd);
+    fprintf("Worst %s Difference: %0.3f [%s]\n", ...
+        md, )
+end
+
+end
+
+
+
+
+
+
+
+
+

@@ -43,8 +43,7 @@ BinaryTree = ConstructBinaryTree(X);
 for q = BinaryTree(1).nLevels:-1:0
     isLevel = [BinaryTree.depth] == q;
     nodes = BinaryTree(isLevel);
-
-    
+  
     for a = 1:length(nodes)
        
         Ba = nodes(a);

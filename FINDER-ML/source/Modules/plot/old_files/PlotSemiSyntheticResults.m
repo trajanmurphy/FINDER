@@ -28,7 +28,7 @@ Aliases = ["GCM", "Plasma (AD vs. CN)", "Plasma (AD vs. LMCI)",...
             "Plasma (CN vs. LMCI)", "newAD",...
             "CSF (CN vs. EMCI)", "CSF (AD vs. CN)"];
 
-Acc = ["AUC", "accuracy"];
+Acc = ["errorRate", ""];
 
 Balances = ["Balanced", "Unbalanced"];
 

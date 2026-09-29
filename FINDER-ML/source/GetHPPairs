@@ -1,0 +1,10 @@
+#!/bin/bash -l
+
+#$ -l h_rt=220:00:00 
+#$ -P uqproj
+#$ -pe omp 28
+#$ -N HPPairs
+#$ -m ea
+
+
+matlab -nodisplay -r "paths; CVTruncations2; exit"

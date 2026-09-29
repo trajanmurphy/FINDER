@@ -4,67 +4,43 @@ close all;
 
 
 methods = DefineMethods;
+methods.all.normalizedata = @MyUnitVariance2;
 methods.all.initialization = @InitializeParameters3;
 
-%MOEs = arrayfun( @(x) str2func(sprintf('MethodOfEllipsoids_%d',x)), 8:11, 'UniformOutput', false);
 
 DS = [methods.data.ADNI_files,...
      {'newAD'},...
+     {'GCM'},...
      methods.data.CSF_files([1 3 5]),...
-     {'GCM'}];
+     ];
 
-noise = {'0.00005', '0.0005', '0.005'};
+iCRS = [3,1];
+CRS = arrayfun(@(x) str2func("MLS_EVT_FCD" + x), iCRS, "UniformOutput", false);
 
 D = methods.all.ValuesTable('Balance', {true, false},...
-                            'Kernel', {false,true},...
-                            'Eigenspace', {'smallest', 'largest'},...
-                            'Name', DS,...
-                            'Noise', noise,...
-                            'Algorithm', {2,1,0});
+    'Kernel', {true,false},...
+    ...'Eigenspace', {'smallest', 'largest'},...
+    'Algorithm', {0}, ...
+    ...'Algorithm', {2}, ...
+    'Name', DS,...
+    'CRS', CRS...
+     ...'Name', DS(7)
+         );
 
-D2 = methods.all.ValuesTable('Balance', {true, false},...
-                            'Kernel', {false,true},...
-                            'Eigenspace', {'smallest', 'largest'},...
-                            'Name', DS,...
-                            'Noise', {'id'},...
-                            'Algorithm', {2,1,0});
+warning("off", "all");
+for irow3 = 50:height(D)
 
-
-D = [D;D2];
-
-for irow3 = 1:height(D)
-
-parameters =  methods.all.initialization();
-parameters.multilevel.splitTraining = D.Balance(irow3); %D{irow3,1};
-parameters.svm.kernal = D.Kernel(irow3); %D{irow3,2};
-parameters.multilevel.eigentag = D.Eigenspace{irow3}; % D{irow3,3};
-
-
-omega = D.Noise{irow3};
-if ischar(omega) | isstring(omega)
-if contains(omega, digitsPattern(1,4)) 
-    omega = str2double(omega);
-end
-end
-if iscell(D.Noise)
-    parameters.synthetic.GaussianNoiseFactor = D.Noise{irow3}; %omega;
-elseif isnumeric(D.Noise)
-    parameters.synthetic.GaussianNoiseFactor = D.Noise(irow3);
-end
-
-parameters.multilevel.svmonly = D.Algorithm(irow3); %D{irow3,4};
-
-%parameters.multilevel.nested = D.Nesting(irow3);
-%parameters.misc.PCA = D.PCA(irow3);
-%parameters.multilevel.chooseTrunc = D.ChooseTrunc(irow3);
-%methods.Multi2.ChooseTruncations = D.Ellipsoid{irow3};
-
+parameters =  methods.all.initialization(); %parameters.parallel.on = false;
+%parameters.multilevel.concentration = D.Threshold(irow3);
+parameters.multilevel.svmonly = D.Algorithm(irow3); 
 parameters.data.label = D.Name{irow3};
+methods.Multi.Filter = D.CRS{irow3};
+parameters.multilevel.splitTraining = D.Balance(irow3); %D{irow3,1};
+...parameters.multilevel.eigentag = D.Eigenspace{irow3};
+parameters.svm.kernal = D.Kernel(irow3); %D{irow3,2};
+
 parameters.data.name = [parameters.data.label '.txt'];
-...methods.Multi2.ConstructResidualSubspace = D.CRS{irow3};
 parameters = methods.data.GetCommonParameters(parameters, methods);
-    
-    
 
  t0 = tic;
  for k = 1:parameters.data.nk
@@ -74,21 +50,12 @@ parameters = methods.data.GetCommonParameters(parameters, methods);
       parameters.data.currentiter=k; 
       [Datas, parameters] = methods.all.readcancerData(parameters, methods);     
       
-        %Initialize Max Multilevel if need be.
+      %Initialize Max Multilevel if need be.
       parameters = methods.all.GetMaxMultiLevel(Datas, parameters, methods);
     
-
       % Create results structure
       [results] = methods.all.iniresults(parameters);
 
-      
-
-
-     
-     %parameters.transform.istransformed = false;
-     
-     % Data size
-      % update parameters.data.n to number of simulated data points
      [parameters] = methods.all.Datasize(Datas, parameters);
 
      %Plot Data if handles are there
@@ -138,17 +105,16 @@ parameters = methods.data.GetCommonParameters(parameters, methods);
 
      parameters = methods.all.filefunc(parameters, methods);
      parameters.data.irow = irow3;
-     Datas.rawdata.AData = []; Datas.rawdata.BData = [];
-     %PrintResultsTxt(Datas, parameters, methods, results);
-     save(fullfile(parameters.datafolder,parameters.dataname), 'parameters', 'results', 'Datas');
+     Datas.rawdata.AData = []; Datas.rawdata.BData = []; Datas.rawdata.T = [];
+     save(fullfile(parameters.datafolder,parameters.dataname), 'parameters', 'results', 'methods');
      save('irow3.mat', 'irow3');
      clear Datas parameters results
      
 
-     % Parallel pool clean up
-     % delete(gcp('nocreate'));
-     % myCluster = parcluster('Processes');
-     % delete(myCluster.Jobs);
+     %%Parallel pool clean up
+     delete(gcp('nocreate'));
+     myCluster = parcluster('Processes');
+     delete(myCluster.Jobs);
 end
 
 end

@@ -14,3 +14,16 @@ elseif strcmp(parameters.data.label, 'newAD')
     parameters.data.path = '/restricted/projectnb/sctad/Codes/Yumeng/';
     parameters.snapshots.k1 = 8;
 end
+
+NAT(:,1) = string(methods.data.all_files)';
+NAT(:,3) = ["Normal"; "CN"; ...
+    "CN"; "LMCI"; "CN";...
+    "CN"; "EMCI" ; "LMCI"; "CN"; "CN";"EMCI"];
+NAT(:,2) = ["Tumor"; "AD";...
+    "AD";"AD";"LMCI";...
+    "AD";"AD";"AD";"EMCI";"LMCI";"LMCI"];
+
+idx = strcmp(NAT(:,1), parameters.data.label);
+parameters.data.nominal = char(NAT(idx,2));
+parameters.data.anomalous = char(NAT(idx,3));
+

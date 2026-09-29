@@ -9,11 +9,11 @@ delete(gcp('nocreate'))
 methods.all.initialization = @InitializeParameters;%@InitializeComp_GCM; %  % Initialization for GCM dataset
 methods.all.filefunc = @filefunc3;
 %methods.all.initialization = @InitializeComp_Lung; % Initialization for Lung dataset
-methods.all.readcancerData = @readData2;
+methods.all.readcancerData = @readData3;
 methods.all.Datasize = @Datasize;
 methods.all.parloopoff = @parloopoff;
-methods.all.normalizedata = @standarized2;
-methods.all.prepdata = @SplitTraining3;
+methods.all.normalizedata = @MyUnitVariance2;
+methods.all.prepdata = @SplitTraining5;
 methods.all.selectgene = @selectgene;
 methods.all.SVMmodel = @fitcsvm; 
 %methods.all.SVMmodel = @fitckernel;
@@ -21,7 +21,7 @@ methods.all.SVMpredict = @predict;
 methods.all.iniresults = @InitializeResults2;
 methods.all.wipeTraining = @wipeTraining;
 methods.all.ComputeAccuracyAndPrecision = @FinalizeResults;
-methods.all.predict = @CompPredictAUC2;
+methods.all.predict = @CompPredict4;
 methods.all.covariance = @UpdateCovariance;
 methods.all.GetMaxMultiLevel = @GetMaxMultiLevel2;
 methods.all.ValuesTable = @InitializeValuesTable;
@@ -104,8 +104,8 @@ methods.Multi.datatrainsub2 = @datatrainsub2;
 methods.Multi.datasvm = @datasvm;
 methods.Multi.datasvmsub1 = @datasvmsub1;
 methods.Multi.datasvmsub2 = @datasvmsub2;
-methods.Multi.parallel = @CompMultiKfoldParallel; %@CompMultiParallel; %
-methods.Multi.noparallel = @CompMultiKfoldNoParallel;
+methods.Multi.parallel = @CompMultiKFold2; %@CompMultiKfoldParallel; %@CompMultiParallel; %
+methods.Multi.noparallel = @CompMultiKFold2; %@CompMultiKfoldNoParallel;
 methods.Multi.orthonormal_basis = @orthonormal_basis;
 methods.Multi.Filter = @CompMultiConstructFilter4;
 methods.Multi.predict = @CompMultiPredict;
@@ -116,7 +116,8 @@ methods.Multi.dataGeneralization = @CompMultiSemiSynthetic;
 
 methods.Multi2.CompMulti = @CompMultiACA2;
 methods.Multi2.Kfold = @CompMultiACA2Sub;
-methods.Multi2.ChooseTruncations = @MethodOfEllipsoids_7; %@MethodOfEllipsoids_5; %@MethodOfEllipsoids; %
+methods.Multi2.ChooseTruncations = @DoNothing;
+%@MLSFCT_FCD_CV; %@MethodOfEllipsoids_5; %@MethodOfEllipsoids; %
 methods.Multi2.InitializeResults = [];
 methods.Multi2.ConstructResidualSubspace = @ResidSubspace3; 
 methods.Multi2.SepFilter = @SepFilter3; %@SepFilter3;
@@ -142,18 +143,18 @@ methods.misc.Comp = @CompMiscMachines2;
 methods.misc.CompSub = @CompMiscMachines2Sub;
 methods.misc.Ablations = @CompAblation;
 methods.misc.AblationSub = @CompAblationSub;
-methods.misc.prep = @MiscMachinePrep;
+methods.misc.prep = @svmprepdata2;
 methods.misc.PCA = @SVMPCA; 
 methods.misc.SVM_Linear = @(X,Y) fitSVMPosterior(fitcsvm(X,Y));
 methods.misc.SVM_Radial = @(X,Y) fitSVMPosterior(fitcsvm(X,Y, ...
                                                     'KernelFunction', 'RBF', 'KernelScale', 'auto'));
 methods.misc.SVM_Weighted = @(X,Y) fitSVMPosterior(fitcsvm(X,Y, ...
                                                     'KernelFunction', 'RBF', 'KernelScale', 'auto', 'Weights', 4));
-methods.misc.LogitBoost = @(X,Y) fitcensemble(X,Y,'Method','LogitBoost');
-methods.misc.RUSBoost = @(X,Y) fitcensemble(X,Y,'Method','RUSBoost');
+methods.misc.LogitBoost = @(X,Y) fitcensemble(X,Y,'Method','LogitBoost','ScoreTransform','logit');
+methods.misc.RUSBoost = @(X,Y) fitcensemble(X,Y,'Method','RUSBoost','ScoreTransform', 'logit');
 methods.misc.Bag = @(X,Y) fitcensemble(X,Y,'Method','Bag');
 %methods.misc.Light = @(X,Y) LightGradientBoosting(X,Y)
 methods.misc.CNN = @(X,Y) ConstructCNN(X,Y);
-methods.misc.predict = @CompPredictAUC2;
+methods.misc.predict = @CompPredictAUC3;
 
 end

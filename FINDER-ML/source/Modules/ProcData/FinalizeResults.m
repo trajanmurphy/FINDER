@@ -5,6 +5,10 @@ function results = FinalizeResults(Datas, parameters, methods, results)
 % "Fourth Dimension indexes the y-value";
 % "Fifth Dimension indexes actual (1) or predicted (2)"
 
+if strcmp(parameters.data.typeA, parameters.data.anomalous) && ...
+   strcmp(parameters.data.typeB, parameters.data.nominal)
+results.array = 1 - results.array;
+end
 
 
 results = ComputeResultsAUC(results);

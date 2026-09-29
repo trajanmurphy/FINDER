@@ -27,10 +27,11 @@ end
 if ~isempty(sigma)
     if isnumeric(sigma)
         D = Datas.rawdata.AData;
-        D = (D - mean(D,2)) * (size(D,2) - 1)^(-0.5);
-        [~,scaleFactor,~] =  svds(D,1,'largest');
-    for CData = ["AData", "BData"]       
+        %D = (D - mean(D,2)) * (size(D,2) - 1)^(-0.5);
+        %[~,scaleFactor,~] =  svds(D,1,'largest');
+        scaleFactor = sqrt(sum( var(D,[],2) ));
         scaleFactor = sigma*scaleFactor;
+    for CData = ["AData", "BData"]       
         noise = scaleFactor * randn(size(Datas.rawdata.(CData)));
         Datas.rawdata.(CData) = Datas.rawdata.(CData) + noise;
     end

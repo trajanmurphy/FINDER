@@ -6,7 +6,6 @@ I = max(parameters.data.NAvals);
 if parameters.parallel.on
     
     parfor i = parameters.data.NAvals
-     %for i = 1:parameters.data.NAvals
         parameters2 = parameters;
         parameters2.data.i = i;
         fprintf('Testing Batch %d of %d\n', i, I);

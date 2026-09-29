@@ -2,51 +2,42 @@ clc;
 clear all;
 close all;
 
-%% LPOCV with Manually Selected Hyperparameters
 
 methods = DefineMethods;
-methods.all.initalization = @InitializeParameters;
 
-MOEs = arrayfun( @(x) str2func(sprintf('MethodOfEllipsoids_%d',x)), 8:11, 'UniformOutput', false);
 
 DS = [methods.data.ADNI_files,...
      {'newAD'},...
+     {'GCM'},...
      methods.data.CSF_files([1 3 5]),...
-     {'GCM'}];
-
-D = methods.all.ValuesTable('Balance', {true, false},...
-                            'Kernel', {true, false},...
-                            'Eigenspace', {'smallest', 'largest'},...
-                            'Name', DS,...
-                            'Algorithm', {2, 1, 0});
+     ];
+CRS = {@MLS_EVT_FCD10};
 
 
+D = methods.all.ValuesTable(...
+    'Balance', {true, false}...
+    ,'Kernel', {true,false}...
+    ,'Eigenspace', {'smallest', 'largest'}...
+    ...,'Algorithm', {0} ...
+    ,'Algorithm', {0} ...
+    ,'Name', DS...
+    ,'CRS', CRS...
+         );
+
+warning("off", "all");
 for irow2 = 1:height(D)
-%delete(gcp('nocreate'));
-parameters =  methods.all.initialization();
-parameters.multilevel.splitTraining = D.Balance(irow2); %D{irow2,1};
-parameters.svm.kernal = D.Kernel(irow2); %D{irow2,2};
-parameters.multilevel.eigentag = D.Eigenspace{irow2}; % D{irow2,3};
 
-
-% omega = D.Noise(irow2);
-% if ischar(omega) | isstring(omega)
-% if contains(omega, digitsPattern(1,4)) 
-%     omega = str2double(omega);
-% end
-% end
-% if iscell(D.Noise)
-%     parameters.synthetic.GaussianNoiseFactor = D.Noise{irow2}; %omega;
-% elseif isnumeric(D.Noise)
-%     parameters.synthetic.GaussianNoiseFactor = D.Noise(irow2);
-% end
-
-parameters.multilevel.svmonly = D.Algorithm(irow2); %D{irow2,4};
-
+parameters =  methods.all.initialization(); %parameters.parallel.on = false;
+parameters.multilevel.svmonly = D.Algorithm(irow2); 
 parameters.data.label = D.Name{irow2};
+methods.Multi.Filter = D.CRS{irow2};
+parameters.multilevel.splitTraining = D.Balance(irow2); %D{irow2,1};
+parameters.multilevel.eigentag = D.Eigenspace{irow2};
+parameters.svm.kernal = D.Kernel(irow2); %D{irow2,2};
+
 parameters.data.name = [parameters.data.label '.txt'];
 parameters = methods.data.GetCommonParameters(parameters, methods);
- 
+
  t0 = tic;
  for k = 1:parameters.data.nk
      t1 = toc(t0);
@@ -55,16 +46,12 @@ parameters = methods.data.GetCommonParameters(parameters, methods);
       parameters.data.currentiter=k; 
       [Datas, parameters] = methods.all.readcancerData(parameters, methods);     
       
-        %Initialize Max Multilevel if need be.
+      %Initialize Max Multilevel if need be.
       parameters = methods.all.GetMaxMultiLevel(Datas, parameters, methods);
     
-
       % Create results structure
       [results] = methods.all.iniresults(parameters);
 
-     
-     % Data size
-      % update parameters.data.n to number of simulated data points
      [parameters] = methods.all.Datasize(Datas, parameters);
 
      %Plot Data if handles are there
@@ -110,25 +97,21 @@ parameters = methods.data.GetCommonParameters(parameters, methods);
       
       results.run_time = duration(0,0,t2 - t1, 'Format', 'hh:mm:ss');
       results.creation_time = datetime;
-
-      parameters.data.irow = irow2;
       
 
      parameters = methods.all.filefunc(parameters, methods);
-     Datas.rawdata.AData = []; Datas.rawdata.BData = [];
-     
-     save(fullfile(parameters.datafolder,parameters.dataname), 'parameters', 'results', 'Datas');
-     %PrintResultsTxt(Datas, parameters, methods, results);
-     
+     parameters.data.irow = irow2;
+     Datas.rawdata.AData = []; Datas.rawdata.BData = []; Datas.rawdata.T = [];
+     save(fullfile(parameters.datafolder,parameters.dataname), 'parameters', 'results', 'methods');
      save('irow2.mat', 'irow2');
      clear Datas parameters results
      
-     % Parallel pool clean up
+
+     %%Parallel pool clean up
      delete(gcp('nocreate'));
      myCluster = parcluster('Processes');
      delete(myCluster.Jobs);
-
- end
+end
 
 end
  

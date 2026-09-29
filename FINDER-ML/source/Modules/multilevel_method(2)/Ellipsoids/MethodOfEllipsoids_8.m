@@ -4,14 +4,18 @@ function parameters = MethodOfEllipsoids_8(Datas, parameters, methods)
 if ~parameters.multilevel.chooseTrunc, return, end
 
 %% Write Data in Class A eigenbasis.
-Yin = Datas2Cell(Datas);
-Yout = methods.Multi2.BinarySVD(Datas.A.CovTraining, Yin);
-D1 = Datas2Cell(Yout);
+%Yin = Datas2Cell(Datas);
+%Yout = methods.Multi2.BinarySVD(Datas.A.CovTraining, Yin);
+%D1 = Datas2Cell(Yout);
+[~, D1.A.CovTraining,...
+    D1.A.Machine,...
+    D1.B.CovTraining,...
+    D1.B.Machine] = methods.Multi2.BinarySVD(Datas.A.CovTraining,...
+    Datas.A.CovTraining,...
+    Datas.A.Machine,...
+    Datas.B.CovTraining,...
+    Datas.B.Machine);
 
-% for C = 'AB', for set = ["CovTraining", "Machine"]
-%         D1.(C).(set) = methods.Multi2.BinarySVD(Datas.A.CovTraining, ...
-%             Datas.(C).(set));
-% end, end
 
 %% Find the indices at which the Class A explained variance increases by 5 percentage points
 LambdaA = mean(D1.A.CovTraining.^2, 2);
@@ -48,14 +52,21 @@ end, end
 XB = D2.B.CovTraining - mean(D2.B.CovTraining, 2);
 
 %% Write Data in Class B eigenspace
-% for C = 'AB', for set = ["CovTraining", "Machine"]
-%         D3.(C).(set) = methods.Multi2.BinarySVD(XB, D2.(C).(set));
-% end, end
+
 
 if parameters.multilevel.svmonly == 2
-Yin = Datas2Cell(D2);
-Yout = methods.Multi2.BinarySVD(XB, Yin);
-D3 = Datas2Cell(Yout);
+% Yin = Datas2Cell(D2);
+% Yout = methods.Multi2.BinarySVD(XB, Yin);
+% D3 = Datas2Cell(Yout);
+
+[~, D3.A.CovTraining,...
+    D3.A.Machine,...
+    D3.B.CovTraining,...
+    D3.B.Machine] = methods.Multi2.BinarySVD(XB,...
+    D2.A.CovTraining,...
+    D2.A.Machine,...
+    D2.B.CovTraining,...
+    D2.B.Machine);
 elseif parameters.multilevel.svmonly == 0
 D3 = D2;
 end
